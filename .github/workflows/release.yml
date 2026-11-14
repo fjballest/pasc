@@ -39,8 +39,8 @@ jobs:
           pip install -q markdown-it-py mdit-py-plugins
           v=$(python3 -c 'import pasclib; print(pasclib.VERSION)')
           mkdir -p pdfdocs
-          python3 packaging/docs/build-pdf.py INSTALAR.md pdfpdfdocs/INSTALAR.pdf
-          cp pdfpdfdocs/INSTALAR.pdf pdfdocs/pasc-$v-INSTALAR.pdf
+          python3 packaging/docs/build-pdf.py INSTALAR.md pdfdocs/INSTALAR.pdf
+          cp pdfdocs/INSTALAR.pdf pdfdocs/pasc-$v-INSTALAR.pdf
           cp docs/userguide.pdf pdfdocs/pasc-$v-userguide.pdf
           cp docs/design.pdf pdfdocs/pasc-$v-design.pdf
       - uses: actions/upload-artifact@v4
