@@ -1,0 +1,3 @@
+{
+ "compile": "err_vstr.p(11,5) Error: String types have to match exactly in $V+ mode"
+}

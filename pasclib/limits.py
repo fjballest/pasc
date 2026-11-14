@@ -1,0 +1,37 @@
+"""Limits for the style warnings that pasc -w reports.
+
+This is the one place to tune them: change a number here, or set a check
+to None (or False) to turn it off.
+"""
+
+LIMITS = {
+	# a source line longer than this (tabs count as 8 columns)
+	'line_length': 100,
+	# lines in the body of a procedure or function, between begin and end:
+	# a longer body is probably not split into subproblems
+	'routine_body_lines': 40,
+	# lines in the body of the main program
+	'main_body_lines': 40,
+	# parameters of a procedure or function: more suggests a record or an
+	# array should be used instead
+	'parameters': 6,
+	# two routines whose bodies are the same (up to the names of their
+	# parameters and locals) and have at least this many tokens
+	'duplicate_min_tokens': 12,
+	# the same statement, or group of up to 'repeat_max_group' statements,
+	# written this many times in a row (perhaps instead of a loop or a
+	# procedure); numbers may differ between the copies
+	'repeat_times': 3,
+	'repeat_max_group': 4,
+	'repeat_min_tokens': 4,
+	# if c then x := true else x := false (or result := ...): assign c
+	'boolean_if': True,
+	# x = True, x <> False, ...: use x or not x
+	'boolean_compare': True,
+	# naming style
+	'const_uppercase': True,	# constants and enumeration values start uppercase
+	'type_uppercase': True,		# type names start uppercase
+	'var_lowercase': True,		# variables, parameters and fields are all lowercase
+	'routine_lowercase': True,	# procedure and function names are all lowercase
+	'consistent_case': True,	# a name is always written as declared
+}

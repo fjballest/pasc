@@ -1,0 +1,4 @@
+{
+ "out": "abc\nxyz\nqyz\nqyz\nab\u0000\nx\u0000\u0000\n",
+ "status": 0
+}

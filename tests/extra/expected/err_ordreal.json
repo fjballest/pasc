@@ -1,0 +1,3 @@
+{
+ "compile": "err_ordreal.p(4,10) Error: Ordinal expression expected"
+}

@@ -1,0 +1,3 @@
+{
+ "compile": "err_textval.p(3,20) Error: File types must be var parameters"
+}

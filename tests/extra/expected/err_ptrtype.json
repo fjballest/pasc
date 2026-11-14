@@ -1,0 +1,3 @@
+{
+ "compile": "err_ptrtype.p(10,7) Error: Incompatible types: got \"P2\" expected \"P1\""
+}

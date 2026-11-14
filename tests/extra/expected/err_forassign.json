@@ -1,0 +1,3 @@
+{
+ "compile": "err_forassign.p(7,5) Error: Illegal assignment to for-loop variable \"i\""
+}

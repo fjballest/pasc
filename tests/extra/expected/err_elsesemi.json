@@ -1,0 +1,3 @@
+{
+ "compile": "err_elsesemi.p(8,2) Fatal: Syntax error, \";\" expected but \"ELSE\" found"
+}

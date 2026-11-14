@@ -1,0 +1,3 @@
+{
+ "compile": "err_chrconst.p(6,14) Error: range check error while evaluating constants (256 must be between 0 and 255)"
+}

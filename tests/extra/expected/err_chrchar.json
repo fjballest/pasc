@@ -1,0 +1,3 @@
+{
+ "compile": "err_chrchar.p(4,17) Error: Incompatible type for arg no. 1: Got \"Char\", expected \"Byte\""
+}

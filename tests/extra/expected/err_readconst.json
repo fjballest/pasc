@@ -1,0 +1,3 @@
+{
+ "compile": "err_readconst.p(6,8) Error: Variable identifier expected"
+}

@@ -1,0 +1,3 @@
+{
+ "compile": "err_valbad.p(6,7) Error: Incompatible type for arg no. 2: Got \"ShortInt\", expected \"ShortString\""
+}

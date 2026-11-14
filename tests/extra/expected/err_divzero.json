@@ -1,0 +1,3 @@
+{
+ "compile": "err_divzero.p(6,9) Error: Division by zero"
+}

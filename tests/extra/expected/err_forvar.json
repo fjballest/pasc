@@ -1,0 +1,3 @@
+{
+ "compile": "err_forvar.p(11,3) Error: Illegal assignment to for-loop variable \"i\""
+}

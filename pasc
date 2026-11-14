@@ -1,0 +1,4 @@
+#!/bin/sh
+# pasc launcher for macOS and Linux: runs pasc.py with python3.
+d=$(dirname "$0")
+exec python3 "$d/pasc.py" "$@"

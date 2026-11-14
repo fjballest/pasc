@@ -1,0 +1,3 @@
+{
+ "compile": "err_cmpmix.p(6,5) Error: Incompatible types: got \"Char\" expected \"Int64\""
+}

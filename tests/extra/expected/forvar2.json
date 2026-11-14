@@ -1,0 +1,3 @@
+{
+ "compile": "forvar2.p(2,55) Error: Illegal counter variable"
+}

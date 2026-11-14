@@ -1,0 +1,13 @@
+constant "maxNotas" should start with an uppercase letter
+type "tipoNota" should start with an uppercase letter
+field "X" should be written in lowercase
+constant "rojo" should start with an uppercase letter
+variable "Total" should be written in lowercase
+procedure "Escribe" should be written in lowercase
+procedure "Escribe" has 6 parameters
+function "otro" does exactly the same as function "doble"
+procedure "calcula" only computes a value for var parameter "r": it should be a function
+line is 125 characters long
+the same statement is written 3 times in a row
+"N" is declared as "n"
+"total" is declared as "Total"

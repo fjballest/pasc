@@ -1,0 +1,13 @@
+x
+C
+c
+tras b? TRUE
+es c? TRUE
+es min? TRUE
+es num? FALSE
+pos? 99
+letra en pos 100? d
+a mayus: C
+pred= b
+succ= d
+succ(4)= 5

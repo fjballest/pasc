@@ -1,0 +1,3 @@
+{
+ "compile": "err_typeexpr.p(4,17) Error: Can't read or write variables of this type"
+}

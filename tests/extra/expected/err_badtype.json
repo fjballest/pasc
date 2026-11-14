@@ -1,0 +1,3 @@
+{
+ "compile": "err_badtype.p(4,5) Error: Identifier not found \"foo\""
+}

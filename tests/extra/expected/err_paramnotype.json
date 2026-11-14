@@ -1,0 +1,3 @@
+{
+ "compile": "err_paramnotype.p(3,14) Fatal: Syntax error, \":\" expected but \")\" found"
+}

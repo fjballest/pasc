@@ -1,0 +1,3 @@
+{
+ "compile": "err_retmis.p(5,12) Error: Incompatible types: got \"Char\" expected \"LongInt\""
+}

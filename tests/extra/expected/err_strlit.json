@@ -1,0 +1,3 @@
+{
+ "compile": "err_strlit.p(4,10) Fatal: String exceeds line"
+}

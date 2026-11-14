@@ -1,0 +1,3 @@
+{
+ "compile": "err_enumadd.p(8,8) Error: Incompatible types: got \"T\" expected \"Int64\""
+}

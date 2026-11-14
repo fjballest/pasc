@@ -1,0 +1,24 @@
+Edit fich.txt
+Sel 2
+Ins
+Prn 0
+	linea	 1
+	a
+	b
+	c
+	lineax	 2
+	xlinea	 3
+	xlineax	 4
+	linea	 5
+Up
+Prn 0
+	LINEA	 1
+	A
+	B
+	C
+	LINEAX	 2
+	XLINEA	 3
+	XLINEAX	 4
+	LINEA	 5
+Quit
+None

@@ -1,0 +1,3 @@
+{
+ "compile": "err_procval.p(9,4) Error: Invalid assignment, procedures return no value"
+}

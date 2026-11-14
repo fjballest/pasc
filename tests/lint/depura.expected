@@ -1,0 +1,2 @@
+function "f" writes output (writeln)
+function "f" writes output (calls traza, which writes output)

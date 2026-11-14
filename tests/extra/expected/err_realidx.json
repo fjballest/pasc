@@ -1,0 +1,3 @@
+{
+ "compile": "err_realidx.p(7,4) Error: Incompatible types: got \"Real\" expected \"ShortInt\""
+}

@@ -1,0 +1,3 @@
+{
+ "compile": "err_dupvar.p(5,3) Error: Duplicate identifier \"a\""
+}

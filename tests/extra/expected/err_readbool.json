@@ -1,0 +1,3 @@
+{
+ "compile": "err_readbool.p(6,8) Error: Can't read or write variables of this type"
+}

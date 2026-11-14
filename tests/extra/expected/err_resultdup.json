@@ -1,0 +1,3 @@
+{
+ "compile": "err_resultdup.p(4,1) Error: Duplicate identifier \"result\""
+}

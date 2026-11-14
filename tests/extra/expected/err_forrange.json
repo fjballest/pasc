@@ -1,0 +1,3 @@
+{
+ "compile": "err_forrange.p(6,21) Error: range check error while evaluating constants (10 must be between 1 and 5)"
+}

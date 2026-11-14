@@ -1,0 +1,3 @@
+{
+ "compile": "err_assignfunc.p(8,2) Error: Argument cannot be assigned to"
+}

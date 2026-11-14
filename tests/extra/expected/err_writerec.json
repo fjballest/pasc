@@ -1,0 +1,3 @@
+{
+ "compile": "err_writerec.p(8,12) Error: Can't read or write variables of this type"
+}

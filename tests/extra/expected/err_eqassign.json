@@ -1,0 +1,3 @@
+{
+ "compile": "err_eqassign.p(6,7) Error: Illegal expression"
+}

@@ -1,0 +1,3 @@
+{
+ "compile": "err_nargs.p(7,2) Error: Wrong number of parameters specified for call to \"q\""
+}

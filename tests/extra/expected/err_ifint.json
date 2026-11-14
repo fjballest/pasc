@@ -1,0 +1,3 @@
+{
+ "compile": "err_ifint.p(6,5) Error: Incompatible types: got \"LongInt\" expected \"Boolean\""
+}

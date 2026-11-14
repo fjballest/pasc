@@ -1,0 +1,3 @@
+{
+ "compile": "err_arrconst.p(6,4) Error: range check error while evaluating constants (4 must be between 1 and 3)"
+}

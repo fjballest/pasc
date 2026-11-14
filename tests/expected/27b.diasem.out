@@ -1,0 +1,8 @@
+2
+Sab
+dia1=Lun
+dia2=Dom
+succ dia1=Sab
+dialab=Sab
+succ dia1=Dom
+succ dialab=

@@ -1,0 +1,3 @@
+{
+ "compile": "err_nomath.p(4,12) Error: Operator is not overloaded: \"ShortInt\" ** \"ShortInt\""
+}

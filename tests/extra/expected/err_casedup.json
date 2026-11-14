@@ -1,0 +1,3 @@
+{
+ "compile": "err_casedup.p(8,6) Error: duplicate case label"
+}

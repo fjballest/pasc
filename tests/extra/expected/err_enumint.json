@@ -1,0 +1,3 @@
+{
+ "compile": "err_enumint.p(8,8) Error: Incompatible types: got \"ShortInt\" expected \"T\""
+}

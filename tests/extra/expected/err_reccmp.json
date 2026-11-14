@@ -1,0 +1,3 @@
+{
+ "compile": "err_reccmp.p(8,8) Error: Operator is not overloaded: \"R\" = \"R\""
+}

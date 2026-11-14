@@ -1,0 +1,3 @@
+{
+ "compile": "err_varsub.p(11,6) Error: Call by var for arg no. 1 has to match exactly: Got \"T\" expected \"LongInt\""
+}
