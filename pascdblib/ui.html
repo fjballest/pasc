@@ -100,6 +100,18 @@ th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background
 tr.fr td { background: var(--chip); font-family: system-ui, sans-serif; font-weight: 600; }
 tr.ret td { color: var(--accent); }
 tr.hl td { background: var(--cur); }
+.tabs button.pop { border-radius: 6px; border-bottom: 1px solid var(--line); padding: 2px 7px; margin-right: 6px; font-size: 12px; }
+#together { margin-left: auto; }
+#together.on { background: var(--accent); color: #fff; }
+#right.all .tabs button[data-tab] { background: var(--chip); color: var(--ink); border-color: var(--line); }
+#right.all .panes { display: flex; flex-direction: row; }
+#right.all .pane { display: block; flex: 1 1 0; min-width: 0; border-left: 1px solid var(--line); }
+#right.all #data.on, #right.all #data { display: block; }
+#right.all #datacols { flex-wrap: wrap; }
+.panes { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.panes > .pane { flex: 1; }
+body.popout main { grid-template-columns: 1fr; }
+body.popout #left, body.popout .tabs, body.popout header button, body.popout header label { display: none; }
 #memlist { display: flex; gap: 16px; align-items: flex-start; }
 #memlist .regions { min-width: 230px; }
 #memlist .regions div.item { cursor: pointer; padding: 1px 4px; border-radius: 3px; font: 12px var(--mono); }
@@ -134,13 +146,16 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 	</section>
 	<section id="right">
 		<div class="tabs">
-			<button data-tab="data" class="on">Datos</button>
-			<button data-tab="stack">Pila</button>
-			<button data-tab="mem">Memoria</button>
+			<button data-tab="data" class="on">Datos</button><button class="pop" data-pop="data" title="Abrir Datos en otra ventana">⧉</button>
+			<button data-tab="stack">Pila</button><button class="pop" data-pop="stack" title="Abrir Pila en otra ventana">⧉</button>
+			<button data-tab="mem">Memoria</button><button class="pop" data-pop="mem" title="Abrir Memoria en otra ventana">⧉</button>
+			<button id="together" class="pop" title="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
 		</div>
+		<div class="panes">
 		<div id="data" class="pane on"><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
 		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div><div id="memttl" class="help"></div><div id="hex"></div></div></div></div>
+		</div>
 	</section>
 </main>
 <script>
@@ -235,7 +250,7 @@ function varNode(x, path) {
 	const row = el('div', 'var');
 	const nm = el('span', 'nm', x.n);
 	nm.title = 'Ver en memoria (' + hex(x.v.a) + ', ' + x.v.s + ' bytes)';
-	nm.onclick = () => { selected = { a: x.v.a, s: x.v.s, n: x.n }; showTab('mem'); renderMem(); };
+	nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n });
 	const kd = el('span', 'kd', x.kind === 'global' ? '' : x.kind);
 	const lab = el('div');
 	lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), kd);
@@ -339,7 +354,7 @@ function renderStack() {
 		[...f.slots].sort((a, b) => b.a - a.a).forEach(sl => {
 			const r = el('tr');
 			r.append(el('td', null, hex(sl.a)), el('td', null, String(sl.s)), el('td', null, sl.n + ' (' + sl.kind + ')'), el('td', null, sl.v), el('td', null, (sl.hex || '').replace(/(..)/g, '$1 ') + (sl.more ? '… +' + sl.more : '')));
-			r.onclick = () => { selected = { a: sl.a, s: sl.s, n: sl.n }; showTab('mem'); renderMem(); };
+			r.onclick = () => select({ a: sl.a, s: sl.s, n: sl.n });
 			tb.append(r);
 		});
 		if (f.ret) {
@@ -402,13 +417,44 @@ function showHex(it) {
 	});
 }
 
-/* tabs, output, status */
+/* tabs, pop-out windows, side by side */
+const VIEW = new URLSearchParams(location.search).get('view');
+const shown = name => VIEW ? VIEW === name : ($('#right').classList.contains('all') || $('#' + name).classList.contains('on'));
 function showTab(name) {
-	document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+	if (VIEW || $('#right').classList.contains('all')) { if (name === 'mem') renderMem(); return; }
+	document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === name));
 	if (name === 'data') drawArrows();
 }
-document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); });
+document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); });
+document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () =>
+	window.open(location.pathname + '?t=' + T + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700'));
+$('#together').onclick = () => {
+	const r = $('#right'), on = !r.classList.contains('all');
+	r.classList.toggle('all', on);
+	$('#together').classList.toggle('on', on);
+	if (!on) showTab('data');
+	renderAll();
+};
+function renderAll() {
+	if (shown('data')) renderData();
+	if (shown('stack')) renderStack();
+	if (shown('mem')) renderMem();
+}
+/* windows of the same session share the selected variable */
+const chan = window.BroadcastChannel ? new BroadcastChannel('pascdb-' + T) : null;
+function select(it) {
+	selected = it;
+	if (chan) chan.postMessage(it);
+	if (!VIEW && !$('#right').classList.contains('all')) showTab('mem');
+	if (shown('mem')) renderMem();
+}
+if (chan) chan.onmessage = e => { selected = e.data; if (shown('mem')) renderMem(); };
+if (VIEW) {
+	document.body.classList.add('popout');
+	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === VIEW));
+	document.title = 'pascdb: ' + ({ data: 'Datos', stack: 'Pila', mem: 'Memoria' }[VIEW] || VIEW);
+}
 function renderStatus() {
 	const st = $('#status'), names = { paused: 'parado', running: 'ejecutando', input: 'esperando entrada', finished: 'terminado', starting: 'empezando' };
 	let t = '<b>' + (names[state.status] || state.status) + '</b>';
@@ -435,11 +481,7 @@ async function poll() {
 				version = s.version;
 				renderStatus();
 				markSource();
-				if (newSnap) {
-					renderData();
-					if ($('#stack').classList.contains('on')) renderStack();
-					if ($('#mem').classList.contains('on')) renderMem();
-				}
+				if (newSnap) renderAll();
 			}
 		} catch (e) {
 			$('#status').textContent = 'pascdb no responde (¿lo has cerrado?)';
@@ -447,7 +489,6 @@ async function poll() {
 		}
 	}
 }
-document.querySelectorAll('.tabs button')[1].addEventListener('click', () => renderStack());
 $('#step').onclick = () => api('step');
 $('#play').onclick = () => api(state && state.mode === 'play' ? 'pause' : 'play');
 $('#run').onclick = () => api('run');

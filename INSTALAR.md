@@ -568,6 +568,9 @@ navegador la dirección que aparece en el terminal). En ella ves:
 - **Memoria**: los bytes de cada variable;
 - la salida del programa y una línea para escribir su entrada.
 
+El botón ⧉ de Datos, Pila o Memoria abre esa parte en otra ventana, y
+**Juntos** las muestra las tres a la vez, una al lado de otra.
+
 Botones: **Paso** (o la tecla Intro) ejecuta una línea, entrando en los
 procedimientos y funciones; **Reproducir** (o la barra espaciadora) lo
 ejecuta despacio él solo, a la velocidad que elijas; **Continuar** sigue

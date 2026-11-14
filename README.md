@@ -152,6 +152,11 @@ local web server; Ctrl+C in the terminal ends it). The page shows:
 * the program's output, and an input line for what it reads (EOF button
   for end of file).
 
+Each of Datos, Pila and Memoria has a ⧉ button that opens it in its own
+window, and **Juntos** shows the three side by side. All the windows
+follow the same run, and a variable picked in one is shown in Memoria in
+all of them.
+
 **Paso** (Enter) runs one source line, entering every procedure and
 function. **Reproducir** (Space) runs the program slowly on its own at the
 chosen speed, and **Continuar** runs to the next breakpoint or the end.
