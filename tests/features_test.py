@@ -34,8 +34,8 @@ for s in ['--- stack(2) at stack2.p:27 ---', '      p: TipoPunto = (  {parameter
 		'              sig: nil', '          [16] = 256', '          ... 4 more']:
 	check('stack(2): ' + s, s in err)
 out, err, st = run('-z', 'runs.p')
-check('runs compact', 'nums: TipoNums = [0, 0, 7, 0, 0, ..., 0, 9]' in err)
-check('runs pretty', '          [29] = 0\n          [30] = 9' in err and '          ...\n' in err)
+check('runs compact', 'nums: TipoNums = [0, 0, 7, 0, 0, ... 23 more, the same, 0, 9]' in err)
+check('runs pretty', '          ... 23 more, the same\n          [29] = 0\n          [30] = 9' in err)
 out, err, st = run('files.p')
 check('file opened again', 'files.p:12: warning: file "uno.tmp" is opened again (it was first opened at line 8)' in err)
 check('file not closed', 'files.p:12: warning: file "uno.tmp" was never closed' in err)

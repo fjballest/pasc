@@ -28,16 +28,50 @@ def runs(keys):
 		i = j
 
 
-def abbreviate(keys):
-	"""Indexes to show: runs longer than RUN show their first two elements,
-	'...' (None) and the last one."""
+def plan(keys, total, limit):
+	"""What to show of an array: a list of element indexes and gaps
+	(count, why).  Runs of more than RUN equal elements, or of garbage, show
+	the first two, a gap and the last.  After 'limit' elements the rest is a
+	gap, but where garbage begins is still shown: its first and last element."""
 	out = []
-	for i, j in runs(keys):
+	shown = 0
+	rs = list(runs(keys))
+	for n, (i, j) in enumerate(rs):
+		garbage = keys[i][1]
+		if shown >= limit:
+			# skip to where garbage starts, if it does
+			g = next(((a, b) for a, b in rs[n:] if keys[a][1]), None)
+			if g is None:
+				out.append((total - i, 'more'))
+				return out
+			if g[0] > i:
+				out.append((g[0] - i, 'more'))
+			i, j = g
+			out.append(i)
+			if j - i > 1:
+				if j - i > 2:
+					out.append((j - i - 2, 'garbage'))
+				out.append(j - 1)
+			if total > j:
+				out.append((total - j, 'more'))
+			return out
 		if j - i > RUN:
-			out += [i, i + 1, None, j - 1]
+			out += [i, i + 1, (j - i - 3, 'garbage' if garbage else 'same'), j - 1]
+			shown += 3
 		else:
 			out += list(range(i, j))
+			shown += j - i
+	if total > len(keys):
+		out.append((total - len(keys), 'more'))
 	return out
+
+
+def gap_text(count, why):
+	if why == 'garbage':
+		return '... %d more, garbage' % count
+	if why == 'same':
+		return '... %d more, the same' % count
+	return '... %d more' % count
 
 
 
@@ -128,15 +162,7 @@ class Formatter:
 			scan = min(t.count, MAXSCAN)
 			vals = [self.value(t.elem, addr + i * t.elem.size, depth + 1) for i in range(scan)]
 			keys = [(v, self.garbage(t.elem, addr + i * t.elem.size)) for i, v in enumerate(vals)]
-			items = []
-			for i in abbreviate(keys):
-				if len(items) >= MAXELEMS:
-					items.append('... %d more' % (t.count - i if i is not None else 0))
-					break
-				items.append('...' if i is None else vals[i])
-			else:
-				if t.count > scan:
-					items.append('... %d more' % (t.count - scan))
+			items = [vals[x] if isinstance(x, int) else gap_text(*x) for x in plan(keys, t.count, MAXELEMS)]
 			return '[' + ', '.join(items) + ']'
 		if t.is_record:
 			if depth > 3:
@@ -215,15 +241,10 @@ class Pretty:
 			scan = min(t.count, MAXSCAN)
 			keys = [(f.value(t.elem, addr + i * t.elem.size, depth + 1), f.garbage(t.elem, addr + i * t.elem.size))
 				for i in range(scan)]
-			shown = 0
-			for i in abbreviate(keys):
-				if shown >= self.maxelems:
-					out.append(pad + '    ... %d more' % (t.count - (i if i is not None else scan)))
-					break
-				if i is None:
-					out.append(pad + '    ...')
+			for i in plan(keys, t.count, self.maxelems):
+				if not isinstance(i, int):
+					out.append(pad + '    ' + gap_text(*i))
 					continue
-				shown += 1
 				idx = t.lo + i
 				if t.index.is_char:
 					label = char_repr(idx)
@@ -234,9 +255,6 @@ class Pretty:
 				else:
 					label = str(idx)
 				out += self.lines('[%s] = ' % label, t.elem, addr + i * t.elem.size, ind + 1, depth + 1, ptrs, seen)
-			else:
-				if t.count > scan:
-					out.append(pad + '    ... %d more' % (t.count - scan))
 			return out + [pad + ']']
 		if t.is_pointer and t.target is not None:
 			p = struct.unpack_from('<Q', f.mem, addr)[0]
