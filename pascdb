@@ -1,0 +1,4 @@
+#!/bin/sh
+# pascdb launcher for macOS and Linux: runs pascdb.py with python3.
+d=$(dirname "$0")
+exec python3 "$d/pascdb.py" "$@"

@@ -27,6 +27,7 @@ jobs:
           python3 tests/difftest.py
           python3 tests/lint_test.py
           python3 tests/features_test.py
+          python3 packaging/smoke_pascdb.py python3 pascdb.py tests/features/stack1.p
 
   docs:
     needs: test
@@ -64,9 +65,13 @@ jobs:
       - name: build
         run: |
           python -m pip install ${{ env.PYINSTALLER }}
-          pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py
+          pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent pasc.py
+          pyinstaller --noconfirm --onedir --console --name pascdb --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent --add-data "pascdblib/ui.html;pascdblib" pascdb.py
+          # one folder with both programs: copy what pascdb adds
+          robocopy dist\pascdb dist\pasc /E /XC /XN /XO /NFL /NDL /NJH /NJS; if ($LASTEXITCODE -lt 8) { $global:LASTEXITCODE = 0 }
           dist\pasc\pasc.exe --version
           dist\pasc\pasc.exe packaging\smoke.p
+          python packaging\smoke_pascdb.py dist\pasc\pascdb.exe tests\features\stack1.p
       - name: installer
         run: |
           Copy-Item docs\INSTALAR.pdf dist\pasc\
@@ -100,10 +105,13 @@ jobs:
       - name: build
         run: |
           $PY -m pip install ${{ env.PYINSTALLER }}
-          $PY -m PyInstaller --noconfirm --onedir --console --target-arch universal2 --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py
+          $PY -m PyInstaller --noconfirm --onedir --console --target-arch universal2 --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent pasc.py
+          $PY -m PyInstaller --noconfirm --onedir --console --target-arch universal2 --name pascdb --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent --add-data "pascdblib/ui.html:pascdblib" pascdb.py
+          cp -Rn dist/pascdb/ dist/pasc/ || true
           lipo -info dist/pasc/pasc
           dist/pasc/pasc --version
           dist/pasc/pasc packaging/smoke.p
+          $PY packaging/smoke_pascdb.py dist/pasc/pascdb tests/features/stack1.p
       - name: installer
         run: |
           cp docs/INSTALAR.pdf dist/pasc/
@@ -130,7 +138,10 @@ jobs:
         run: |
           docker run --rm -v "$PWD":/w -w /w python:3.7-stretch sh -c '
             pip install -q ${{ env.PYINSTALLER }} &&
-            pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py &&
+            pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent pasc.py &&
+            pyinstaller --noconfirm --onedir --console --name pascdb --hidden-import pasclib.lint --hidden-import pasclib.debug --hidden-import pasclib.indent --add-data pascdblib/ui.html:pascdblib pascdb.py &&
+            cp -Rn dist/pascdb/. dist/pasc/ &&
+            python packaging/smoke_pascdb.py dist/pasc/pascdb tests/features/stack1.p &&
             dist/pasc/pasc --version && dist/pasc/pasc packaging/smoke.p &&
             chown -R '"$(id -u):$(id -g)"' dist build'
           echo "VERSION=$(python3 -c 'import pasclib; print(pasclib.VERSION)')" >> $GITHUB_ENV

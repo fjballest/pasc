@@ -71,8 +71,9 @@ class Routine:
 
 
 class Compiler:
-	def __init__(self, fname, lint=False):
+	def __init__(self, fname, lint=False, debug=False):
 		self.fname = fname
+		self.debug = debug		# emit LINE instructions for pascdb
 		self.lint = lint
 		self.lints = []			# style warnings (pasc -w)
 		self.casewarned = set()
@@ -624,7 +625,9 @@ class Compiler:
 		for off, src, size in ctx.inits:
 			body += [(C.LADDR, off, r.line), (C.GADDR, src, r.line), (C.COPY, size, r.line)]
 		body += self.stmt(r.body)
-		body.append((C.RET, info.index, r.body.line))
+		if self.debug:
+			body.append(self.line_op(r.body.endline, 1))
+		body.append((C.RET, info.index, r.body.endline))
 		if ret is not None and not ctx.resultset:
 			self.warn('Function result does not seem to be set', r)
 		sym.does_io = ctx.io
@@ -1510,7 +1513,13 @@ class Compiler:
 		mark = self.rt.frame
 		code = getattr(self, 's_' + type(s).__name__)(s)
 		self.rt.frame = mark
+		if self.debug and not isinstance(s, (A.Compound, A.Empty, A.While, A.Repeat)):
+			code = [self.line_op(s.line, s.col)] + code
 		return code
+
+	def line_op(self, line, col):
+		"""pascdb stops before executing the statement at line:col."""
+		return (C.LINE, (line, col), line)
 
 	def s_Empty(self, s):
 		return []
@@ -1618,7 +1627,8 @@ class Compiler:
 	def s_While(self, s):
 		ltop = self.newlabel()
 		lend = self.newlabel()
-		code = [(LABEL, ltop, s.line)] + self.cond(s.cond) + [(C.JZ, lend, s.line)]
+		code = [(LABEL, ltop, s.line)] + ([self.line_op(s.line, s.col)] if self.debug else [])
+		code += self.cond(s.cond) + [(C.JZ, lend, s.line)]
 		code += self.stmt(s.body)
 		code += [(C.JMP, ltop, s.line), (LABEL, lend, s.line)]
 		return code
@@ -1627,6 +1637,8 @@ class Compiler:
 		ltop = self.newlabel()
 		code = [(LABEL, ltop, s.line)] + self.stmt_list(s.stmts)
 		self.at(s.cond)
+		if self.debug:
+			code.append(self.line_op(s.cond.line, s.cond.col))
 		code += self.cond(s.cond) + [(C.JZ, ltop, s.cond.line)]
 		return code
 
@@ -1671,6 +1683,8 @@ class Compiler:
 		sym.locked += 1
 		code += self.stmt(s.body)
 		sym.locked -= 1
+		if self.debug:
+			code.append(self.line_op(s.line, s.col))
 		code += vcode + [(C.LDL, ('q', te), line), (C.EQ, None, line), (C.JNZ, lend, line)]
 		code += vcode + [(C.PUSH, -1 if s.down else 1, line), (C.ADD, None, line)]
 		code += self.store_scalar(sym, line)
@@ -1706,6 +1720,8 @@ class Compiler:
 		sym.locked += 1
 		code += self.stmt(s.body)
 		sym.locked -= 1
+		if self.debug:
+			code.append(self.line_op(s.line, s.col))
 		code += vcode + [(C.PUSH, it.hi, line), (C.EQ, None, line), (C.JNZ, lend, line)]
 		code += vcode + [(C.PUSH, 1, line), (C.ADD, None, line)]
 		code += self.store_scalar(sym, line)
@@ -1785,6 +1801,8 @@ class Compiler:
 		lab = self.newlabel()
 		main.entry_label = lab
 		body = [(LABEL, lab, p.body.line)] + self.stmt(p.body)
+		if self.debug:
+			body.append(self.line_op(p.endpos[0], 1))
 		body += [(C.PUSH, 0, p.endpos[0]), (C.HALT, None, p.endpos[0])]
 		main.framesize = self.rt.maxframe
 		self.code = body + self.code
@@ -1873,10 +1891,10 @@ class _Void(T.Type):
 VOID = _Void()
 
 
-def compile_program(tree, fname, lint=False):
+def compile_program(tree, fname, lint=False, debug=False):
 	from .indent import check_indentation
 	iwarn = check_indentation(tree, fname)
-	c = Compiler(fname, lint)
+	c = Compiler(fname, lint, debug)
 	prog = c.program(tree)
 	prog.warnings[:0] = iwarn
 	if lint:

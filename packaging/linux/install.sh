@@ -12,6 +12,7 @@ rm -rf "$prefix/lib/pasc"
 cp -R "$here/pasc" "$prefix/lib/pasc"
 cp "$here/README.md" "$prefix/lib/pasc/" 2>/dev/null || true
 ln -sf "$prefix/lib/pasc/pasc" "$prefix/bin/pasc"
+[ -e "$prefix/lib/pasc/pascdb" ] && ln -sf "$prefix/lib/pasc/pascdb" "$prefix/bin/pascdb"
 echo "pasc installed in $prefix/bin/pasc"
 case ":$PATH:" in
 *":$prefix/bin:"*)

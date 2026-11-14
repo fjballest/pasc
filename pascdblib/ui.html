@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pascdb</title>
+<style>
+:root {
+	--bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #d9d9de;
+	--accent: #1f5fbf; --cur: #fff3b0; --curline: #e8b800; --bad: #c62828; --ptr: #2e7d32;
+	--rec: #eef3fb; --arr: #f3f0fa; --heap: #eef7ef; --frame: #fafafa; --chip: #eceff3;
+	--mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #18181b; --panel: #222226; --ink: #e8e8ea; --muted: #9a9aa2; --line: #3a3a40;
+		--accent: #6ea8ff; --cur: #4a4220; --curline: #e8b800; --bad: #ff6b6b; --ptr: #6fcf73;
+		--rec: #1f2a3a; --arr: #2a2438; --heap: #1f3323; --frame: #26262b; --chip: #303036;
+	}
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif;
+	height: 100vh; display: flex; flex-direction: column; }
+header { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel);
+	border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0 8px 0 0; }
+button { font: inherit; padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px;
+	background: var(--chip); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#status { margin-left: auto; color: var(--muted); }
+#status b { color: var(--ink); }
+main { flex: 1; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; min-height: 0; }
+#left { display: flex; flex-direction: column; border-right: 1px solid var(--line); min-height: 0; }
+#source { flex: 1; overflow: auto; font: 13px/1.5 var(--mono); background: var(--panel); padding: 6px 0; }
+.ln { display: flex; white-space: pre; }
+.ln .no { width: 3.5em; text-align: right; padding-right: 8px; color: var(--muted); cursor: pointer;
+	user-select: none; flex: none; }
+.ln .no.bp { color: #fff; background: var(--bad); border-radius: 0 8px 8px 0; }
+.ln .tx { flex: 1; tab-size: 8; -moz-tab-size: 8; }
+.ln.cur { background: var(--cur); }
+.ln.cur .no { color: var(--ink); font-weight: 700; }
+.colmark { background: var(--curline); color: #000; border-radius: 2px; }
+#io { border-top: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column;
+	height: 34%; min-height: 120px; }
+#io h2, .tabs { font-size: 12px; margin: 0; padding: 4px 10px; color: var(--muted); text-transform: uppercase;
+	letter-spacing: .05em; }
+#out { flex: 1; overflow: auto; margin: 0; padding: 4px 10px; font: 13px/1.4 var(--mono); white-space: pre-wrap; }
+#out .msg { color: var(--bad); }
+#inrow { display: flex; gap: 6px; padding: 6px 10px; border-top: 1px solid var(--line); }
+#inrow input { flex: 1; font: 13px var(--mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px;
+	background: var(--bg); color: var(--ink); }
+#inrow.waiting input { border-color: var(--curline); box-shadow: 0 0 0 2px var(--curline); }
+#right { display: flex; flex-direction: column; min-height: 0; }
+.tabs { display: flex; gap: 4px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.tabs button { border-radius: 6px 6px 0 0; border-bottom: none; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.tabs button.on { background: var(--panel); border-color: var(--accent); color: var(--accent); }
+.pane { flex: 1; overflow: auto; position: relative; display: none; padding: 10px; }
+.pane.on { display: block; }
+#data { display: none; }
+#data.on { display: flex; gap: 24px; align-items: flex-start; }
+#datacols { display: flex; gap: 28px; align-items: flex-start; position: relative; padding-right: 90px; padding-bottom: 20px; }
+#arrows { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.col { display: flex; flex-direction: column; gap: 10px; min-width: 220px; }
+.col h3 { margin: 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.frame { background: var(--frame); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.frame.top { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.frame > .ttl { font-weight: 600; margin-bottom: 4px; }
+.frame > .ttl small { font-weight: 400; color: var(--muted); }
+.var { display: flex; gap: 6px; align-items: flex-start; padding: 2px 0; }
+.var .nm { font: 13px var(--mono); white-space: nowrap; cursor: pointer; }
+.var .nm:hover { color: var(--accent); }
+.var .kd { color: var(--muted); font-size: 11px; }
+.val { font: 13px var(--mono); }
+.sc { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; display: inline-block; }
+.g { color: var(--bad); font-style: italic; }
+.box { border: 1px solid var(--line); border-radius: 6px; display: inline-block; vertical-align: top; }
+.box > .hd { font-size: 11px; color: var(--muted); padding: 1px 6px; cursor: pointer; user-select: none; }
+.box > .hd::before { content: "\25BE "; }
+.box.closed > .hd::before { content: "\25B8 "; }
+.box.closed > .bd { display: none; }
+.rec { background: var(--rec); }
+.rec > .bd { padding: 2px 6px 4px; }
+.rec .fld { display: flex; gap: 6px; padding: 1px 0; align-items: flex-start; }
+.rec .fld > .fn { color: var(--muted); font: 12px var(--mono); min-width: 3em; }
+.arr { background: var(--arr); }
+.arr > .bd { display: flex; flex-wrap: wrap; gap: 2px; padding: 2px 4px 4px; max-width: 900px; }
+.cell { display: flex; flex-direction: column; align-items: center; }
+.cell > .ix { font-size: 10px; color: var(--muted); }
+.ptr { display: inline-block; min-width: 18px; text-align: center; border: 1px solid var(--ptr); color: var(--ptr);
+	border-radius: 4px; padding: 0 4px; font: 12px var(--mono); }
+.ptr.nil { border-color: var(--line); color: var(--muted); }
+.ptr.bad { border-color: var(--bad); color: var(--bad); }
+.heapblk { background: var(--heap); border: 1px solid var(--ptr); border-radius: 8px; padding: 4px 6px; }
+.heapblk .ttl { font: 11px var(--mono); color: var(--muted); }
+.sel { outline: 2px solid var(--curline); outline-offset: 1px; }
+table { border-collapse: collapse; font: 12px var(--mono); }
+th, td { border-bottom: 1px solid var(--line); padding: 2px 8px; text-align: left; vertical-align: top; }
+th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--panel); }
+tr.fr td { background: var(--chip); font-family: system-ui, sans-serif; font-weight: 600; }
+tr.ret td { color: var(--accent); }
+tr.hl td { background: var(--cur); }
+#memlist { display: flex; gap: 16px; align-items: flex-start; }
+#memlist .regions { min-width: 230px; }
+#memlist .regions div.item { cursor: pointer; padding: 1px 4px; border-radius: 3px; font: 12px var(--mono); }
+#memlist .regions div.item:hover, #memlist .regions div.item.on { background: var(--cur); }
+#memlist .regions h4 { margin: 8px 0 2px; font-size: 12px; color: var(--muted); }
+#hex { font: 12px/1.5 var(--mono); white-space: pre; }
+#hex .b { padding: 0 1px; }
+#hex .on { background: var(--cur); }
+#hex .ad { color: var(--muted); }
+.help { color: var(--muted); font-size: 12px; }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; }
+</style>
+</head>
+<body>
+<header>
+	<h1>pascdb <small id="fname" style="font-weight:400;color:var(--muted)"></small></h1>
+	<button id="step" class="primary" title="Ejecuta una línea (entra en procedimientos y funciones) [Intro]">Paso</button>
+	<button id="play" title="Ejecuta despacio, sin pedir el siguiente paso [Espacio]">▶ Reproducir</button>
+	<button id="run" title="Ejecuta hasta el siguiente punto de parada o el final">⏩ Continuar</button>
+	<button id="restart" title="Vuelve a empezar">⟲ Reiniciar</button>
+	<label class="help">Velocidad <input id="speed" type="range" min="0" max="2000" step="50" value="600"> <span id="speedv"></span></label>
+	<span id="status"></span>
+</header>
+<main>
+	<section id="left">
+		<div id="source"></div>
+		<div id="io">
+			<h2>Salida del programa</h2>
+			<pre id="out"></pre>
+			<div id="inrow"><input id="input" placeholder="Entrada para el programa (Intro para enviar la línea)" autocomplete="off"><button id="eof" title="Fin de la entrada (eof)">EOF</button></div>
+		</div>
+	</section>
+	<section id="right">
+		<div class="tabs">
+			<button data-tab="data" class="on">Datos</button>
+			<button data-tab="stack">Pila</button>
+			<button data-tab="mem">Memoria</button>
+		</div>
+		<div id="data" class="pane on"><div id="datacols"><svg id="arrows"></svg></div></div>
+		<div id="stack" class="pane"></div>
+		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div><div id="memttl" class="help"></div><div id="hex"></div></div></div></div>
+	</section>
+</main>
+<script>
+"use strict";
+const T = new URLSearchParams(location.search).get('t');
+const $ = (s, e = document) => e.querySelector(s);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const api = (p, q = {}) => fetch('/api/' + p + '?' + new URLSearchParams({ ...q, t: T })).then(r => r.json());
+
+let lines = [], state = null, version = -1, closed = new Map(), selected = null;
+const hex = n => '0x' + Number(n).toString(16);
+
+/* source */
+function renderSource() {
+	const src = $('#source');
+	src.textContent = '';
+	lines.forEach((text, i) => {
+		const row = el('div', 'ln');
+		row.id = 'L' + (i + 1);
+		const no = el('span', 'no', String(i + 1));
+		no.title = 'Punto de parada';
+		no.onclick = () => api('break', { line: i + 1 });
+		row.append(no, el('span', 'tx', text || ' '));
+		src.append(row);
+	});
+}
+function markSource() {
+	document.querySelectorAll('.ln.cur').forEach(r => { r.classList.remove('cur'); r.querySelector('.tx').textContent = lines[+r.id.slice(1) - 1] || ' '; });
+	document.querySelectorAll('.no.bp').forEach(n => n.classList.remove('bp'));
+	(state.breaks || []).forEach(b => { const r = $('#L' + b); if (r) r.querySelector('.no').classList.add('bp'); });
+	const s = state.snap;
+	if (!s) return;
+	const row = $('#L' + s.line);
+	if (!row) return;
+	row.classList.add('cur');
+	const text = lines[s.line - 1] || '';
+	const tx = row.querySelector('.tx');
+	const c = Math.max(0, s.col - 1);
+	let e = c;
+	while (e < text.length && !/[\s;]/.test(text[e])) e++;
+	tx.textContent = '';
+	tx.append(document.createTextNode(text.slice(0, c)), el('span', 'colmark', text.slice(c, Math.max(e, c + 1)) || ' '), document.createTextNode(text.slice(Math.max(e, c + 1))));
+	const box = $('#source').getBoundingClientRect(), rb = row.getBoundingClientRect();
+	if (s.final) row.classList.remove('cur');
+	if (rb.top < box.top + 20 || rb.bottom > box.bottom - 20) row.scrollIntoView({ block: 'center' });
+}
+
+/* graphic data */
+function valueNode(v, path, depth) {
+	if (!v) return el('span', 'sc', '?');
+	if (v.k === 'scalar' || v.k === 'bad') {
+		const s = el('span', 'sc' + (v.g ? ' g' : ''), v.v);
+		if (v.g) s.title = 'Valor sin inicializar o fuera de rango (basura)';
+		return s;
+	}
+	if (v.k === 'str') {
+		const s = el('span', 'sc' + (v.g ? ' g' : ''), v.v);
+		s.title = 'longitud ' + v.n + ' de ' + v.m;
+		return s;
+	}
+	if (v.k === 'ptr') {
+		const p = el('span', 'ptr ' + (v.st === 'nil' ? 'nil' : v.st === 'heap' ? '' : 'bad'));
+		p.textContent = v.st === 'nil' ? 'nil' : v.st === 'heap' ? '●' : v.st === 'dangling' ? '✗ liberado' : v.st === 'mem' ? '● @' + v.p : '✗ basura';
+		p.title = v.st === 'heap' ? 'apunta a ' + hex(v.p) : v.st === 'dangling' ? 'puntero a memoria ya liberada con dispose' : v.st === 'nil' ? 'nil' : hex(v.p);
+		if (v.st === 'heap') { p.dataset.to = v.p; p.dataset.from = path; }
+		return p;
+	}
+	const box = el('div', 'box ' + (v.k === 'record' ? 'rec' : 'arr'));
+	const hd = el('div', 'hd', v.t + (v.k === 'array' ? ' [' + v.count + ']' : ''));
+	const bd = el('div', 'bd');
+	box.append(hd, bd);
+	const dflt = depth > 2 || (v.k === 'array' && v.count > 60);
+	if (closed.has(path) ? closed.get(path) : dflt) box.classList.add('closed');
+	hd.onclick = () => { box.classList.toggle('closed'); closed.set(path, box.classList.contains('closed')); drawArrows(); };
+	if (v.k === 'record') {
+		for (const f of v.f) {
+			const row = el('div', 'fld');
+			row.append(el('span', 'fn', f.n), valueNode(f.v, path + '.' + f.n, depth + 1));
+			bd.append(row);
+		}
+	} else {
+		for (const it of v.items) {
+			const c = el('div', 'cell');
+			c.append(el('span', 'ix', it.i), valueNode(it.v, path + '[' + it.i + ']', depth + 1));
+			bd.append(c);
+		}
+		if (v.more > 0) bd.append(el('span', 'help', '… ' + v.more + ' más'));
+	}
+	return box;
+}
+function varNode(x, path) {
+	const row = el('div', 'var');
+	const nm = el('span', 'nm', x.n);
+	nm.title = 'Ver en memoria (' + hex(x.v.a) + ', ' + x.v.s + ' bytes)';
+	nm.onclick = () => { selected = { a: x.v.a, s: x.v.s, n: x.n }; showTab('mem'); renderMem(); };
+	const kd = el('span', 'kd', x.kind === 'global' ? '' : x.kind);
+	const lab = el('div');
+	lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), kd);
+	row.append(lab, valueNode(x.v, path, 0));
+	return row;
+}
+function renderData() {
+	const cols = $('#datacols');
+	[...cols.children].forEach(c => { if (c.id !== 'arrows') c.remove(); });
+	const s = state.snap;
+	if (!s) { cols.append(el('div', 'help', state.status === 'finished' ? 'El programa ha terminado.' : 'Pulsa Paso para empezar.')); drawArrows(); return; }
+	const left = el('div', 'col');
+	left.append(el('h3', null, s.final ? 'El programa ha terminado' : 'Pila (llamadas en curso)'));
+	s.frames.forEach((f, i) => {
+		const fr = el('div', 'frame' + (i === 0 ? ' top' : ''));
+		const ttl = el('div', 'ttl');
+		ttl.append(document.createTextNode(f.name + ' '), el('small', null, 'línea ' + f.line));
+		fr.append(ttl);
+		if (!f.vars.length) fr.append(el('div', 'help', 'sin variables'));
+		f.vars.forEach(x => fr.append(varNode(x, 'f' + (s.frames.length - i) + ':' + f.routine + ':' + x.n)));
+		left.append(fr);
+	});
+	if (s.globals.length) {
+		const g = el('div', 'frame');
+		g.append(el('div', 'ttl', 'Variables globales'));
+		s.globals.forEach(x => g.append(varNode(x, 'g:' + x.n)));
+		left.append(g);
+	}
+	cols.append(left);
+	if (s.heap.length) {
+		const right = el('div', 'col');
+		right.append(el('h3', null, 'Memoria dinámica (new)'));
+		for (const h of orderHeap(s)) {
+			const b = el('div', 'heapblk');
+			b.id = 'heap-' + h.a;
+			b.append(el('div', 'ttl', '^' + h.t + '  ' + hex(h.a) + '  (new en línea ' + h.line + ')'), valueNode(h.v, 'h:' + h.a, 0));
+			right.append(b);
+		}
+		cols.append(right);
+	}
+	requestAnimationFrame(drawArrows);
+}
+/* heap blocks in the order pointers reach them, so lists read top to bottom */
+function orderHeap(s) {
+	const byA = new Map(s.heap.map(h => [h.a, h])), out = [], seen = new Set();
+	const visit = v => {
+		if (!v) return;
+		if (v.k === 'ptr' && v.st === 'heap' && byA.has(v.p) && !seen.has(v.p)) { seen.add(v.p); const h = byA.get(v.p); out.push(h); visit(h.v); }
+		if (v.k === 'record') v.f.forEach(f => visit(f.v));
+		if (v.k === 'array') v.items.forEach(it => visit(it.v));
+	};
+	s.globals.forEach(x => visit(x.v));
+	[...s.frames].reverse().forEach(f => f.vars.forEach(x => visit(x.v)));
+	s.heap.forEach(h => { if (!seen.has(h.a)) { seen.add(h.a); out.push(h); visit(h.v); } });
+	return out;
+}
+function drawArrows() {
+	const svg = $('#arrows'), cols = $('#datacols');
+	svg.innerHTML = '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ptr)"/></marker></defs>';
+	const base = cols.getBoundingClientRect();
+	svg.setAttribute('width', cols.scrollWidth);
+	svg.setAttribute('height', cols.scrollHeight);
+	document.querySelectorAll('#datacols .ptr[data-to]').forEach(p => {
+		if (!p.offsetParent) return;	/* inside a collapsed box */
+		const t = document.getElementById('heap-' + p.dataset.to);
+		if (!t) return;
+		const a = p.getBoundingClientRect(), b = t.getBoundingClientRect();
+		const x1 = a.right - base.left, y1 = a.top + a.height / 2 - base.top;
+		let x2 = b.left - base.left - 2, y2 = b.top + 12 - base.top;
+		if (b.left < a.right) { x2 = b.right - base.left + 2; }
+		const dx = Math.max(30, Math.abs(x2 - x1) / 2);
+		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		const c1 = x1 + dx, c2 = (b.left < a.right) ? x2 + dx : x2 - dx;
+		path.setAttribute('d', `M${x1},${y1} C${c1},${y1} ${c2},${y2} ${x2},${y2}`);
+		path.setAttribute('fill', 'none');
+		path.setAttribute('stroke', 'var(--ptr)');
+		path.setAttribute('stroke-width', '1.5');
+		path.setAttribute('marker-end', 'url(#ah)');
+		svg.append(path);
+	});
+}
+window.addEventListener('resize', drawArrows);
+
+/* stack, as it is in memory */
+function renderStack() {
+	const pane = $('#stack');
+	pane.textContent = '';
+	const s = state.snap;
+	if (!s) { pane.append(el('div', 'help', 'No hay pila: el programa no está parado.')); return; }
+	pane.append(el('p', 'help', 'La pila crece hacia direcciones mayores: arriba está la llamada en curso. Cada llamada guarda antes de sus datos la dirección de retorno (la instrucción a la que vuelve) y el marco de quien la llamó.'));
+	const tb = el('table');
+	const hr = el('tr');
+	['dirección', 'bytes', 'contenido', 'valor', 'bytes en memoria'].forEach(h => hr.append(el('th', null, h)));
+	tb.append(hr);
+	s.frames.forEach(f => {
+		const t = el('tr', 'fr');
+		const td = el('td', null, f.name + ' — marco en ' + hex(f.fp) + ', ' + f.size + ' bytes, ejecutando línea ' + f.line);
+		td.colSpan = 5;
+		t.append(td);
+		tb.append(t);
+		[...f.slots].sort((a, b) => b.a - a.a).forEach(sl => {
+			const r = el('tr');
+			r.append(el('td', null, hex(sl.a)), el('td', null, String(sl.s)), el('td', null, sl.n + ' (' + sl.kind + ')'), el('td', null, sl.v), el('td', null, (sl.hex || '').replace(/(..)/g, '$1 ') + (sl.more ? '… +' + sl.more : '')));
+			r.onclick = () => { selected = { a: sl.a, s: sl.s, n: sl.n }; showTab('mem'); renderMem(); };
+			tb.append(r);
+		});
+		if (f.ret) {
+			const r1 = el('tr', 'ret');
+			r1.append(el('td', null, hex(f.ret.a + 8)), el('td', null, '8'), el('td', null, 'marco de quien llamó (fp guardado)'), el('td', null, hex(f.ret.savedfp)), el('td'));
+			const r2 = el('tr', 'ret');
+			r2.append(el('td', null, hex(f.ret.a)), el('td', null, '8'), el('td', null, 'dirección de retorno'), el('td', null, 'instrucción ' + f.ret.pc + ' (vuelve a la línea ' + f.ret.line + ')'), el('td'));
+			tb.append(r1, r2);
+		}
+	});
+	pane.append(tb);
+}
+
+/* raw memory */
+let memItems = [];
+function renderMem() {
+	const s = state.snap, list = $('#memlist .regions');
+	list.textContent = '';
+	memItems = [];
+	if (!s) { list.append(el('div', 'help', 'El programa no está parado.')); return; }
+	const add = (title, items) => {
+		list.append(el('h4', null, title));
+		items.forEach(it => {
+			const d = el('div', 'item', hex(it.a) + '  ' + it.n + ' (' + it.s + ')');
+			if (selected && selected.a === it.a && selected.n === it.n) d.classList.add('on');
+			d.onclick = () => { selected = it; renderMem(); };
+			list.append(d);
+			memItems.push(it);
+		});
+	};
+	add('Variables globales', s.gslots);
+	s.frames.forEach(f => add('Pila: ' + f.name, [...f.slots].sort((a, b) => a.a - b.a).concat(f.ret ? [{ a: f.ret.a, s: 16, n: 'retorno y fp guardado' }] : [])));
+	add('Memoria dinámica', s.heap.map(h => ({ a: h.a, s: h.s, n: '^' + h.t })));
+	if (!selected && memItems.length) selected = memItems[0];
+	if (selected) showHex(selected);
+}
+function showHex(it) {
+	const start = Math.max(0, it.a - (it.a % 16) - 32), len = Math.min(4096, (it.a - start) + it.s + 48);
+	$('#memttl').textContent = it.n + ': ' + it.s + ' bytes desde ' + hex(it.a) + ' (resaltados)';
+	api('mem', { addr: start, len }).then(m => {
+		const h = $('#hex');
+		h.textContent = '';
+		const bytes = m.hex.match(/../g) || [];
+		const owner = a => memItems.find(x => a >= x.a && a < x.a + x.s);
+		for (let r = 0; r < bytes.length; r += 16) {
+			const line = el('div');
+			line.append(el('span', 'ad', hex(start + r).padStart(10, ' ') + '  '));
+			let ascii = '';
+			for (let k = 0; k < 16 && r + k < bytes.length; k++) {
+				const a = start + r + k, b = el('span', 'b' + (a >= it.a && a < it.a + it.s ? ' on' : ''), bytes[r + k] + ' ');
+				const o = owner(a);
+				if (o) b.title = o.n + ' (' + hex(o.a) + ')';
+				line.append(b);
+				const c = parseInt(bytes[r + k], 16);
+				ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
+			}
+			line.append(el('span', 'ad', ' ' + ascii));
+			h.append(line);
+		}
+	});
+}
+
+/* tabs, output, status */
+function showTab(name) {
+	document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === name));
+	if (name === 'data') drawArrows();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); });
+function renderStatus() {
+	const st = $('#status'), names = { paused: 'parado', running: 'ejecutando', input: 'esperando entrada', finished: 'terminado', starting: 'empezando' };
+	let t = '<b>' + (names[state.status] || state.status) + '</b>';
+	if (state.snap) t += ' · línea ' + state.snap.line + ', columna ' + state.snap.col;
+	if (state.status === 'finished') t += ' · código de salida ' + state.exitcode;
+	st.innerHTML = t;
+	$('#play').textContent = state.mode === 'play' ? '⏸ Pausa' : '▶ Reproducir';
+	$('#inrow').classList.toggle('waiting', state.status === 'input');
+	if (state.status === 'input') $('#input').focus();
+	const out = $('#out');
+	const atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 4;
+	out.textContent = state.output;
+	if (state.messages) out.append(el('span', 'msg', (state.output && !state.output.endsWith('\n') ? '\n' : '') + state.messages));
+	if (atEnd) out.scrollTop = out.scrollHeight;
+	$('#speedv').textContent = (state.delay).toFixed(2) + ' s';
+}
+async function poll() {
+	for (;;) {
+		try {
+			const s = await api('state', { since: version });
+			if (s.version !== version) {
+				const newSnap = JSON.stringify(s.snap || null) !== JSON.stringify(state ? state.snap || null : null);
+				state = s;
+				version = s.version;
+				renderStatus();
+				markSource();
+				if (newSnap) {
+					renderData();
+					if ($('#stack').classList.contains('on')) renderStack();
+					if ($('#mem').classList.contains('on')) renderMem();
+				}
+			}
+		} catch (e) {
+			$('#status').textContent = 'pascdb no responde (¿lo has cerrado?)';
+			await new Promise(r => setTimeout(r, 2000));
+		}
+	}
+}
+document.querySelectorAll('.tabs button')[1].addEventListener('click', () => renderStack());
+$('#step').onclick = () => api('step');
+$('#play').onclick = () => api(state && state.mode === 'play' ? 'pause' : 'play');
+$('#run').onclick = () => api('run');
+$('#restart').onclick = () => { closed.clear(); api('restart'); };
+$('#speed').oninput = e => api('speed', { delay: e.target.value / 1000 });
+$('#input').onkeydown = e => { if (e.key === 'Enter') { api('input', { text: e.target.value }); e.target.value = ''; } };
+$('#eof').onclick = () => api('eof');
+$('#data').addEventListener('scroll', drawArrows);
+document.addEventListener('keydown', e => {
+	if (e.target.tagName === 'INPUT') return;
+	if (e.key === 'Enter' || e.key === 'F10') { e.preventDefault(); api('step'); }
+	else if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
+});
+api('source').then(s => { lines = s.lines; $('#fname').textContent = s.fname; renderSource(); poll(); });
+</script>
+</body>
+</html>

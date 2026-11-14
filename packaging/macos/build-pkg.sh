@@ -11,6 +11,7 @@ mkdir -p $root/usr/local/lib $root/usr/local/bin build/scripts
 cp -R dist/pasc $root/usr/local/lib/pasc
 cp README.md $root/usr/local/lib/pasc/
 ln -s ../lib/pasc/pasc $root/usr/local/bin/pasc
+ln -s ../lib/pasc/pascdb $root/usr/local/bin/pascdb
 # files downloaded from the web are quarantined; the installed ones need not be
 cat > build/scripts/postinstall <<'EOS'
 #!/bin/sh

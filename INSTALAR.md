@@ -548,6 +548,35 @@ Algunas cosas que conviene saber:
 
 ---
 
+## Ver cómo se ejecuta un programa: pascdb
+
+`pascdb` viene con pasc y sirve para ver, paso a paso, qué hace un programa:
+
+```
+pascdb hola.p
+```
+
+Se abre una página en el navegador (si no se abre sola, copia en el
+navegador la dirección que aparece en el terminal). En ella ves:
+
+- el programa, con la línea que se va a ejecutar resaltada;
+- **Datos**: las variables dibujadas como cajas (registros, arrays y listas
+  enlazadas, con flechas para los punteros). Pulsa la cabecera de un
+  registro o array para plegarlo o desplegarlo;
+- **Pila**: la pila tal y como está en memoria, con las direcciones de
+  retorno de cada llamada;
+- **Memoria**: los bytes de cada variable;
+- la salida del programa y una línea para escribir su entrada.
+
+Botones: **Paso** (o la tecla Intro) ejecuta una línea, entrando en los
+procedimientos y funciones; **Reproducir** (o la barra espaciadora) lo
+ejecuta despacio él solo, a la velocidad que elijas; **Continuar** sigue
+hasta el siguiente punto de parada (se ponen pulsando el número de una
+línea) o hasta el final; **Reiniciar** vuelve a empezar. Para terminar,
+pulsa **Ctrl + C** en el terminal.
+
+---
+
 ## Problemas frecuentes
 
 **Windows: «"pasc" no se reconoce como un comando interno o externo».**

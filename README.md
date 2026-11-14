@@ -76,7 +76,8 @@ These deliberately go beyond (or against) fpc, to help students learn:
   and marks garbage values. `stack(1)`, `stack(2)`, ... print more: one
   line per field or array element, indented, with structures nested one
   level deeper, pointers followed one more step and more array elements
-  for each level. `stack()` is `stack(0)`.
+  for each level. `stack()` is `stack(0)`. Runs of more than three equal
+  (or garbage) array elements show only the first two, `...` and the last.
 * **Functions must not do input/output.** Using `read`, `eof`, files,
   etc. in a function, or calling a procedure that does, is a compile
   error. `write` and `writeln` (directly or through a procedure that only
@@ -86,6 +87,16 @@ These deliberately go beyond (or against) fpc, to help students learn:
   error: write `c >= 'a'`.
 * **"should be a function".** A procedure that does no input/output and
   only assigns a value to its single `var` parameter gets a warning.
+* **Indentation.** A badly indented program does not compile: the
+  statements of a block are indented more than the line that opens it and
+  start at the same column, and `end`, `else` and `until` line up with the
+  line that opened them (tabs count as 8 columns). Indenting with spaces
+  in a file that also uses tabs gets a warning suggesting tabs.
+* **Files.** When the program ends, files still open are reported, and so
+  is opening the same file a second time.
+* **Big parameters.** An array or record value parameter that the routine
+  never changes is passed by reference internally, so passing large data
+  by value does not copy it (or overflow the stack).
 
 ### Style warnings (`-w`)
 
@@ -103,12 +114,50 @@ These deliberately go beyond (or against) fpc, to help students learn:
 * `x = True`, `x <> False` and the like, where the comparison is not needed;
 * `if c then x := true else x := false` (or `result := ...`), which should
   assign or return `c` or `not c` directly;
+* bodies of `if`, `else`, `while` and `for` not written between `begin` and
+  `end`;
+* a `for` loop that sets a boolean when it finds something but keeps going
+  (it should be a `while` or `repeat` that stops);
+* a routine taking an array and an index used only as `a[i]` (pass the
+  element instead);
+* a routine taking an array and the number of elements used in it (keep
+  both in a record);
 * naming style: constants, enumeration values and types start with an
   uppercase letter; variables, parameters, fields, procedures and functions
   are all lowercase; a name is always written as it was declared.
 
 All the limits are in one table, `pasclib/limits.py`. Change a number there,
 or set an entry to `None` to turn that check off.
+
+## pascdb: watching a program run
+
+```
+pascdb prog.p
+```
+
+compiles the program and opens a page in the browser (pascdb is a small
+local web server; Ctrl+C in the terminal ends it). The page shows:
+
+* the source, with the statement about to run highlighted (line and
+  column), and breakpoints set by clicking line numbers;
+* **Datos**: the program's data drawn as boxes: one frame per active
+  procedure or function with its parameters, locals and result, the global
+  variables, and the blocks allocated with `new`. Records and arrays can
+  be collapsed and expanded by clicking their headers, and pointers are
+  arrows, so linked lists appear as chains. Garbage values are marked;
+* **Pila**: the stack as it is in memory, with addresses, sizes and bytes
+  of every slot, plus each call's return address and saved frame pointer;
+* **Memoria**: a hex dump of any variable, frame slot or heap block, with
+  its bytes highlighted;
+* the program's output, and an input line for what it reads (EOF button
+  for end of file).
+
+**Paso** (Enter) runs one source line, entering every procedure and
+function. **Reproducir** (Space) runs the program slowly on its own at the
+chosen speed, and **Continuar** runs to the next breakpoint or the end.
+**Reiniciar** starts again. pascdb uses pasc's compiler and VM (compiled
+with extra LINE instructions); pasc itself does not need pascdb. It needs
+only Python and a browser, and the installers include it.
 
 ## Semantics
 
@@ -197,6 +246,9 @@ text variables. As in fpc, `and` and `or` short-circuit.
 | `pasclib/textio.py`, `fmt.py` | text files, number formatting, `val` |
 | `pasclib/debug.py` | `stack()` and the leak report |
 | `pasclib/lint.py`, `limits.py` | style warnings and their limits |
+| `pasclib/indent.py` | indentation checks |
+| `pascdb.py`, `pascdblib/` | the browser-based stepper (server, snapshots, `ui.html`) |
+| `packaging/install-local.sh` | installs the checkout for the current user (no root) |
 
 ## Tests
 

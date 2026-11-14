@@ -61,6 +61,8 @@ class VM:
 		STRUCTS['Q'].pack_into(self.mem, 24, 2)
 		self.callstack = []
 		self.pc = 0
+		self.hook = None		# called on LINE instructions (pascdb)
+		self.heap_types = {}		# address -> type of the block (pascdb)
 
 	# files
 	def file(self, addr):
@@ -111,7 +113,7 @@ class VM:
 				self.warn(getattr(f, 'opened_at', 0), 'file "%s" was never closed' % f.name)
 
 	# heap
-	def new(self, size, site):
+	def new(self, size, site, typ=None):
 		req = size
 		size = max(size, 1)
 		size = (size + 7) & ~7
@@ -124,6 +126,8 @@ class VM:
 			a = len(self.mem)
 			self.mem.extend(self.garbage(size))
 		self.heap_live[a] = (req, site)
+		if typ is not None:
+			self.heap_types[a] = typ
 		return a
 
 	def dispose(self, a):
@@ -384,6 +388,8 @@ class VM:
 					if nsp > stack_end:
 						raise RunError(202)
 					mem[nfp:nsp] = garbage(r.framesize)
+					SQ.pack_into(mem, sp, pc)		# return address
+					SQ.pack_into(mem, sp + 8, fp)	# caller's frame
 					for how, off, x in r.params:
 						v = pop()
 						if how == 'val':
@@ -576,6 +582,9 @@ class VM:
 				self.sys(a, stack)
 		elif op == C.HALT:
 			raise Halt(pop())
+		elif op == C.LINE:
+			if self.hook is not None:
+				self.hook(pc, fp, sp, a)
 		elif op == C.NOP:
 			pass
 		else:
@@ -785,7 +794,7 @@ class VM:
 			self.file(stack.pop()).close()
 		elif name == 'new':
 			addr = stack.pop()
-			STRUCTS['Q'].pack_into(mem, addr, self.new(a[1], (a[3], a[2].name)))
+			STRUCTS['Q'].pack_into(mem, addr, self.new(a[1], (a[3], a[2].name), a[2]))
 		elif name == 'dispose':
 			addr = stack.pop()
 			self.dispose(STRUCTS['Q'].unpack_from(mem, addr)[0])
