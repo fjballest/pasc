@@ -43,6 +43,8 @@ th { background: #e8ecf0; }
 a { color: #1a4f8a; text-decoration: none; }
 hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
 li { margin: 0.2em 0; }
+img { max-width: 100%; border: 1px solid #ccc; }
+figure, p:has(> img) { page-break-inside: avoid; }
 """
 
 def find_chrome():
@@ -62,9 +64,11 @@ def main():
 	body = md.render(text)
 	m = re.search(r'^#\s+(.+)$', text, re.M)
 	title = m.group(1).strip() if m else os.path.basename(src)
-	html = ('<!doctype html><html lang="es"><head><meta charset="utf-8">'
+	# relative links and images are relative to the Markdown file
+	base = 'file://' + os.path.dirname(os.path.abspath(src)) + '/'
+	html = ('<!doctype html><html><head><meta charset="utf-8"><base href="%s">'
 		'<title>%s</title><style>%s</style></head><body>%s</body></html>'
-		% (title, CSS, body))
+		% (base, title, CSS, body))
 	d = tempfile.mkdtemp()
 	h = os.path.join(d, 'guia.html')
 	open(h, 'w', encoding='utf-8').write(html)

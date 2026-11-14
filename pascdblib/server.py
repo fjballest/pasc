@@ -132,12 +132,12 @@ class Session:
 			if self.restart_req:
 				raise Restart()
 			line = pos[0]
+			self.lastpos = pos
 			if self.mode == 'run' and line not in self.breaks:
 				return
 			if self.mode == 'run':
 				self.mode = 'pause'
 			self.paused = (pc, fp, sp, pos)
-			self.lastpos = pos
 			self.highwater = max(self.highwater, sp)
 			self.snap = None
 			self.status = 'paused'

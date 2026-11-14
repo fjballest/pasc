@@ -249,7 +249,7 @@ const EN = {
 	'puntero a memoria ya liberada con dispose': 'pointer to memory already freed with dispose',
 	'<dirección no válida>': '<invalid address>', 'cerrado': 'closed', 'lectura': 'reading', 'escritura': 'writing', 'sin asignar': 'not assigned',
 	'parámetro': 'parameter', 'parámetro var': 'var parameter', 'local': 'local', 'resultado': 'result', 'global': 'global',
-	'variable global': 'global variable',
+	'variable global': 'global variable', '  (new en línea {0})': '  (new at line {0})',
 	'Ficheros': 'Files', 'Abrir Ficheros en otra ventana': 'Open Files in another window',
 	'Ficheros abiertos para leer. Lo ya leído aparece atenuado y el siguiente carácter que se leerá, resaltado.': 'Files open for reading. What has been read is dimmed, and the next character to be read is highlighted.',
 	'No hay ficheros abiertos para leer.': 'No files are open for reading.', 'esperando más entrada': 'waiting for more input',
@@ -536,7 +536,7 @@ function renderData() {
 			const b = el('div', 'heapblk');
 			b.id = 'heap-' + h.a;
 			if (newHeap.has(h.a)) b.classList.add('chg');
-			b.append(el('div', 'ttl', '^' + h.t + '  ' + hex(h.a) + '  (new en línea ' + h.line + ')'), valueNode(h.v, 'h:' + h.a, 0));
+			b.append(el('div', 'ttl', '^' + h.t + '  ' + hex(h.a) + L('  (new en línea {0})', h.line)), valueNode(h.v, 'h:' + h.a, 0));
 			right.append(b);
 		}
 		cols.append(right);
@@ -866,6 +866,7 @@ function renderStatus() {
 	if (atEnd) out.scrollTop = out.scrollHeight;
 	$('#speedv').textContent = (state.delay).toFixed(2) + ' s';
 }
+const ONCE = new URLSearchParams(location.search).get('once');
 async function poll() {
 	for (;;) {
 		if (gone) return;
@@ -882,6 +883,8 @@ async function poll() {
 				markSource();
 				if (newSnap) renderAll();
 			}
+			/* &once=1: show the current state and stop (for screenshots) */
+			if (ONCE) return;
 		} catch (e) {
 			if (gone) return;
 			/* a pop-out window whose pascdb has ended closes itself */
@@ -918,6 +921,13 @@ document.addEventListener('keydown', e => {
 	if (e.key === 'Enter' || e.key === 'F10') { e.preventDefault(); api('step'); }
 	else if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
 });
+/* optional URL settings: &tab=stack|mem|files, &together=1, &refs=copy|arrow */
+{
+	const q = new URLSearchParams(location.search);
+	if (q.get('refs')) refCopies = q.get('refs') === 'copy';
+	if (!VIEW && q.get('together')) { $('#right').classList.add('all'); $('#together').classList.add('on'); }
+	else if (!VIEW && q.get('tab')) showTab(q.get('tab'));
+}
 api('source').then(s => { lines = s.lines; $('#fname').textContent = s.fname; renderSource(); poll(); });
 </script>
 </body>

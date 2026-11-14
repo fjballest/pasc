@@ -5,6 +5,12 @@ the course sources (the `.p` files in `../src`). It is pure
 Python 3 (3.7 or later), has no dependencies, and runs the same way on
 macOS, Linux and Windows.
 
+## Documentation
+
+* [docs/userguide.md](docs/userguide.md) ([PDF](docs/userguide.pdf)): how to use pasc and pascdb, with pascdb screenshots.
+* [docs/design.md](docs/design.md) ([PDF](docs/design.pdf)): design and internals, for whoever changes pasc or pascdb.
+* `docs/build.sh` regenerates both PDFs (`-s` also retakes the screenshots with `docs/shots.py`).
+
 ## Installing
 
 Students: see [INSTALAR.md](INSTALAR.md), a step-by-step guide in Spanish. Each release also carries it as a PDF (`pasc-VERSION-INSTALAR.pdf`), and every installer and zip includes it as `INSTALAR.pdf`; the workflow builds it with `packaging/docs/build-pdf.py`.
