@@ -498,8 +498,15 @@ function showTab(name) {
 	if (name === 'data') drawArrows();
 }
 document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); });
-document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () =>
-	window.open(location.pathname + '?t=' + T + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700'));
+const popups = {};
+document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () => {
+	popups[b.dataset.pop] = window.open(location.pathname + '?t=' + T + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700');
+});
+function closePopups() {
+	for (const w of Object.values(popups)) {
+		try { if (w && !w.closed) w.close(); } catch (e) { }
+	}
+}
 $('#together').onclick = () => {
 	const r = $('#right'), on = !r.classList.contains('all');
 	r.classList.toggle('all', on);
@@ -564,6 +571,8 @@ async function poll() {
 			}
 		} catch (e) {
 			if (gone) return;
+			/* a pop-out window whose pascdb has ended closes itself */
+			if (VIEW) { gone = true; bye(); return; }
 			$('#status').textContent = 'pascdb no responde (¿lo has cerrado?)';
 			await new Promise(r => setTimeout(r, 2000));
 		}
@@ -574,6 +583,7 @@ $('#play').onclick = () => api(state && state.mode === 'play' ? 'pause' : 'play'
 $('#run').onclick = () => api('run');
 $('#restart').onclick = () => { closed.clear(); api('restart'); };
 function bye() {
+	closePopups();
 	$('#bye').classList.add('on');
 	window.close();	/* works for windows pascdb opened, ignored otherwise */
 }
