@@ -136,7 +136,7 @@ pascdb prog.p
 ```
 
 compiles the program and opens a page in the browser (pascdb is a small
-local web server; Ctrl+C in the terminal ends it). The page shows:
+local web server; the Salir button or Ctrl+C in the terminal ends it). The page shows:
 
 * the source, with the statement about to run highlighted (line and
   column), and breakpoints set by clicking line numbers;
@@ -160,7 +160,7 @@ all of them.
 **Paso** (Enter) runs one source line, entering every procedure and
 function. **Reproducir** (Space) runs the program slowly on its own at the
 chosen speed, and **Continuar** runs to the next breakpoint or the end.
-**Reiniciar** starts again. pascdb uses pasc's compiler and VM (compiled
+**Reiniciar** starts again, and **Salir** ends pascdb. pascdb uses pasc's compiler and VM (compiled
 with extra LINE instructions); pasc itself does not need pascdb. It needs
 only Python and a browser, and the installers include it.
 

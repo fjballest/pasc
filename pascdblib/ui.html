@@ -112,6 +112,9 @@ tr.hl td { background: var(--cur); }
 .panes > .pane { flex: 1; }
 body.popout main { grid-template-columns: 1fr; }
 body.popout #left, body.popout .tabs, body.popout header button, body.popout header label { display: none; }
+#bye { position: fixed; inset: 0; background: var(--bg); display: none; align-items: center; justify-content: center;
+	flex-direction: column; gap: 8px; font-size: 18px; z-index: 10; }
+#bye.on { display: flex; }
 #memlist { display: flex; gap: 16px; align-items: flex-start; }
 #memlist .regions { min-width: 230px; }
 #memlist .regions div.item { cursor: pointer; padding: 1px 4px; border-radius: 3px; font: 12px var(--mono); }
@@ -132,6 +135,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 	<button id="play" title="Ejecuta despacio, sin pedir el siguiente paso [Espacio]">▶ Reproducir</button>
 	<button id="run" title="Ejecuta hasta el siguiente punto de parada o el final">⏩ Continuar</button>
 	<button id="restart" title="Vuelve a empezar">⟲ Reiniciar</button>
+	<button id="quit" title="Termina pascdb y cierra la página">✕ Salir</button>
 	<label class="help">Velocidad <input id="speed" type="range" min="0" max="2000" step="50" value="600"> <span id="speedv"></span></label>
 	<span id="status"></span>
 </header>
@@ -158,6 +162,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 		</div>
 	</section>
 </main>
+<div id="bye"><b>pascdb ha terminado</b><span class="help">Puedes cerrar esta ventana.</span></div>
 <script>
 "use strict";
 const T = new URLSearchParams(location.search).get('t');
@@ -449,7 +454,11 @@ function select(it) {
 	if (!VIEW && !$('#right').classList.contains('all')) showTab('mem');
 	if (shown('mem')) renderMem();
 }
-if (chan) chan.onmessage = e => { selected = e.data; if (shown('mem')) renderMem(); };
+if (chan) chan.onmessage = e => {
+	if (e.data && e.data.quit) { gone = true; bye(); return; }
+	selected = e.data;
+	if (shown('mem')) renderMem();
+};
 if (VIEW) {
 	document.body.classList.add('popout');
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === VIEW));
@@ -473,8 +482,10 @@ function renderStatus() {
 }
 async function poll() {
 	for (;;) {
+		if (gone) return;
 		try {
 			const s = await api('state', { since: version });
+			if (s.status === 'quit') { gone = true; bye(); return; }
 			if (s.version !== version) {
 				const newSnap = JSON.stringify(s.snap || null) !== JSON.stringify(state ? state.snap || null : null);
 				state = s;
@@ -484,6 +495,7 @@ async function poll() {
 				if (newSnap) renderAll();
 			}
 		} catch (e) {
+			if (gone) return;
 			$('#status').textContent = 'pascdb no responde (¿lo has cerrado?)';
 			await new Promise(r => setTimeout(r, 2000));
 		}
@@ -493,6 +505,12 @@ $('#step').onclick = () => api('step');
 $('#play').onclick = () => api(state && state.mode === 'play' ? 'pause' : 'play');
 $('#run').onclick = () => api('run');
 $('#restart').onclick = () => { closed.clear(); api('restart'); };
+function bye() {
+	$('#bye').classList.add('on');
+	window.close();	/* works for windows pascdb opened, ignored otherwise */
+}
+let gone = false;
+$('#quit').onclick = () => { gone = true; if (chan) chan.postMessage({ quit: true }); api('quit').catch(() => {}).finally(bye); };
 $('#speed').oninput = e => api('speed', { delay: e.target.value / 1000 });
 $('#input').onkeydown = e => { if (e.key === 'Enter') { api('input', { text: e.target.value }); e.target.value = ''; } };
 $('#eof').onclick = () => api('eof');

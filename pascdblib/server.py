@@ -220,7 +220,8 @@ class Session:
 				self.cv.wait(1.0)
 			st = {
 				'version': self.version,
-				'status': 'input' if self.waiting_input else self.status,
+				'status': 'quit' if getattr(self, 'quitting', False) else
+					('input' if self.waiting_input else self.status),
 				'mode': self.mode,
 				'exitcode': self.exitcode,
 				'breaks': sorted(self.breaks),
@@ -274,6 +275,14 @@ def make_handler(session, token):
 				return self.send(200, json.dumps(session.state(int(q.get('since', -1)))))
 			if u.path == '/api/mem':
 				return self.send(200, json.dumps(session.memory(int(q.get('addr', 0)), int(q.get('len', 256)))))
+			if u.path == '/api/quit':
+				self.send(200, '{}')
+				with session.cv:
+					session.quitting = True
+					session.version += 1
+					session.cv.notify_all()
+				threading.Thread(target=self.server.shutdown, daemon=True).start()
+				return
 			if u.path.startswith('/api/'):
 				session.command(u.path[5:], q)
 				return self.send(200, '{}')
@@ -296,4 +305,6 @@ def serve(prog, source, open_browser=True, port=0):
 		httpd.serve_forever()
 	except KeyboardInterrupt:
 		pass
+	httpd.server_close()
+	print('pascdb: done')
 	return 0

@@ -576,7 +576,7 @@ procedimientos y funciones; **Reproducir** (o la barra espaciadora) lo
 ejecuta despacio él solo, a la velocidad que elijas; **Continuar** sigue
 hasta el siguiente punto de parada (se ponen pulsando el número de una
 línea) o hasta el final; **Reiniciar** vuelve a empezar. Para terminar,
-pulsa **Ctrl + C** en el terminal.
+pulsa **Salir** (o **Ctrl + C** en el terminal).
 
 ---
 
