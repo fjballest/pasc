@@ -53,6 +53,8 @@ class VM:
 		self.heap_free = {}		# size -> [addresses]
 		self.heap_live = {}		# address -> (size, (line, type name))
 		self.heap_dead = set()		# disposed blocks
+		self.opened = {}		# file path -> line where first opened
+		self.warned = set()
 		self.out, self.inp = std_files()
 		self.files = [None, self.out, self.inp]
 		STRUCTS['Q'].pack_into(self.mem, 16, 1)
@@ -83,6 +85,30 @@ class VM:
 			return pool[k:k + n]
 		reps = n // len(pool) + 1
 		return (pool * reps)[:n]
+
+	# file warnings
+	def warn(self, line, msg):
+		self.flush_all()
+		sys.stderr.write('%s:%d: warning: %s\n' % (self.prog.fname, line, msg))
+
+	def note_open(self, f):
+		"""Warn when the same file is opened again in the program."""
+		if f.std is not None:
+			return
+		line = self.prog.lines[self.pc - 1]
+		key = os.path.abspath(f.name)
+		first = self.opened.get(key)
+		if first is None:
+			self.opened[key] = line
+		elif key not in self.warned:
+			self.warned.add(key)
+			self.warn(line, 'file "%s" is opened again (it was first opened at line %d)' % (f.name, first))
+
+	def files_report(self):
+		"""Warn about files still open when the program ends."""
+		for f in self.files[3:]:
+			if f.mode != 'closed':
+				self.warn(getattr(f, 'opened_at', 0), 'file "%s" was never closed' % f.name)
 
 	# heap
 	def new(self, size, site):
@@ -133,6 +159,7 @@ class VM:
 			return 130
 		self.flush_all()
 		debug.leak_report(self)
+		self.files_report()
 		return status & 0xff if status >= 0 else status & 0xff
 
 	def where(self, pc):
@@ -545,6 +572,7 @@ class VM:
 			if a == 'stack':
 				debug.dump_stack(self, pc, fp, max(0, stack.pop()))
 			else:
+				self.pc = pc
 				self.sys(a, stack)
 		elif op == C.HALT:
 			raise Halt(pop())
@@ -745,10 +773,14 @@ class VM:
 				f = TextFile(fname)
 				self.files.append(f)
 				STRUCTS['Q'].pack_into(mem, addr, len(self.files) - 1)
-		elif name == 'reset':
-			self.file(stack.pop()).reset()
-		elif name == 'rewrite':
-			self.file(stack.pop()).rewrite()
+		elif name == 'reset' or name == 'rewrite':
+			f = self.file(stack.pop())
+			self.note_open(f)
+			if name == 'reset':
+				f.reset()
+			else:
+				f.rewrite()
+			f.opened_at = self.prog.lines[self.pc - 1]
 		elif name == 'close':
 			self.file(stack.pop()).close()
 		elif name == 'new':

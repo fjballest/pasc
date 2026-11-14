@@ -23,7 +23,172 @@ def lint_program(tree, prog):
 		for r in routines:
 			boolean_if_check(r.body, r, found)
 		boolean_if_check(tree.body, None, found)
+	for body in [r.body for r in routines] + [tree.body]:
+		if LIMITS.get('begin_end'):
+			begin_end_check(body, found)
+		if LIMITS.get('search_loop'):
+			search_loop_check(body, found)
+	types = global_types(tree)
+	for r in routines:
+		array_param_checks(r, types, found)
 	return found
+
+
+# begin/end around the bodies of loops and conditionals
+
+def begin_end_check(body, found):
+	for st in all_stmts(body):
+		bodies = []
+		if isinstance(st, A.If):
+			bodies = [('if', st.then)]
+			if st.else_ is not None and not isinstance(st.else_, A.If):
+				bodies.append(('else', st.else_))
+		elif isinstance(st, A.While):
+			bodies = [('while', st.body)]
+		elif isinstance(st, (A.For, A.ForIn)):
+			bodies = [('for', st.body)]
+		for kw, b in bodies:
+			if not isinstance(b, (A.Compound, A.Empty)):
+				found.append((b.line, b.col, 'write the body of this "%s" between begin and end' % kw))
+			elif isinstance(b, A.Empty):
+				found.append((st.line, st.col, 'the body of this "%s" is empty' % kw))
+
+
+# a for loop that keeps going after finding what it looks for
+
+def is_bool_set(st):
+	return isinstance(st, A.Assign) and bool_lit(st.expr) is not None
+
+
+def search_loop_check(body, found):
+	for st in all_stmts(body):
+		if not isinstance(st, (A.For, A.ForIn)):
+			continue
+		b = single(st.body)
+		if not isinstance(b, A.If) or b.else_ is not None:
+			continue
+		then = b.then
+		stmts = [x for x in (then.stmts if isinstance(then, A.Compound) else [then])
+			if not isinstance(x, A.Empty)]
+		if stmts and all(isinstance(x, A.Assign) for x in stmts) and any(is_bool_set(x) for x in stmts):
+			found.append((st.line, st.col, 'this loop goes on after finding what it looks for: '
+				'use while or repeat and stop when it is found'))
+
+
+# arrays passed with an index or with a count
+
+def global_types(tree):
+	"""Type declarations of the program: name -> type node."""
+	types = {}
+	for d in tree.decls:
+		if isinstance(d, list):
+			for td in d:
+				types[td.name[0]] = td.typ
+	return types
+
+
+def resolve(tn, types, local=None, depth=0):
+	while isinstance(tn, A.TName) and depth < 20:
+		k = tn.name[0]
+		if local and k in local:
+			tn = local[k]
+		elif k in types:
+			tn = types[k]
+		else:
+			return tn
+		depth += 1
+	return tn
+
+
+def is_array(tn, types, local):
+	return isinstance(resolve(tn, types, local), A.TArray)
+
+
+def is_integer(tn, types, local):
+	t = resolve(tn, types, local)
+	return (isinstance(t, A.TName) and t.name[0] == 'integer') or isinstance(t, A.TSubrange)
+
+
+def walk(n, parent=None):
+	"""Every node under n, with its parent."""
+	yield n, parent
+	if isinstance(n, A.Node):
+		for f in n._fields:
+			v = getattr(n, f)
+			for c in (v if isinstance(v, (list, tuple)) else [v]):
+				if isinstance(c, tuple):
+					for cc in c:
+						if isinstance(cc, A.Node):
+							yield from walk(cc, n)
+				elif isinstance(c, A.Node):
+					yield from walk(c, n)
+
+
+def array_param_checks(r, types, found):
+	local = {}
+	for d in r.decls:
+		if isinstance(d, list):
+			for td in d:
+				local[td.name[0]] = td.typ
+	arrays = []
+	ints = []
+	for p in r.params:
+		for (key, text), pos in p.names:
+			if is_array(p.typ, types, local):
+				arrays.append((key, text))
+			elif is_integer(p.typ, types, local) and p.mode == 'value':
+				ints.append((key, text))
+	if not arrays or not ints:
+		return
+	nodes = list(walk(r.body))
+	for ik, itext in ints:
+		uses = [(n, par) for n, par in nodes if isinstance(n, A.Name) and n.name == ik]
+		if not uses:
+			continue
+		# only ever used as a[i] on one array parameter a
+		if LIMITS.get('array_index_param'):
+			bases = set()
+			for n, par in uses:
+				if (isinstance(par, A.Index) and len(par.indexes) == 1 and par.indexes[0] is n
+						and isinstance(par.base, A.Name)):
+					bases.add(par.base.name)
+				else:
+					bases.add(None)
+			if len(bases) == 1 and None not in bases:
+				ak = bases.pop()
+				a = dict(arrays).get(ak)
+				ause = [(n, par) for n, par in nodes if isinstance(n, A.Name) and n.name == ak]
+				if a and all(isinstance(par, A.Index) and par.base is n and isinstance(par.indexes[0], A.Name)
+						and par.indexes[0].name == ik for n, par in ause):
+					found.append((r.line, r.col, '%s only uses %s[%s]: pass that element instead of '
+						'the array "%s" and the index "%s"' % (kind_name(r), a, itext, a, itext)))
+					continue
+		# used as the number of elements of an array parameter
+		if LIMITS.get('array_count_param'):
+			# index variables of array parameters: a[x]
+			idxvars = {}
+			for n, par in nodes:
+				if isinstance(n, A.Index) and isinstance(n.base, A.Name) and n.base.name in dict(arrays) \
+						and len(n.indexes) == 1 and isinstance(n.indexes[0], A.Name):
+					idxvars.setdefault(n.indexes[0].name, n.base.name)
+			counted = None
+			for st, par in nodes:
+				# for x := ... to n do ... a[x] ...
+				if isinstance(st, A.For) and isinstance(st.stop, A.Name) and st.stop.name == ik \
+						and st.var.name in idxvars:
+					counted = idxvars[st.var.name]
+				# x <= n, x < n, ... with a[x]
+				elif isinstance(st, A.Binary) and st.op in ('<', '<=', '>', '>=') and \
+						isinstance(st.left, A.Name) and isinstance(st.right, A.Name):
+					names = {st.left.name, st.right.name}
+					if ik in names:
+						other = (names - {ik}).pop() if len(names) == 2 else None
+						if other in idxvars:
+							counted = idxvars[other]
+			if counted:
+				a = dict(arrays)[counted]
+				found.append((r.line, r.col, '%s uses "%s" as the number of elements of "%s": keep the '
+					'array and its count together in a record and pass that instead' % (kind_name(r), itext, a)))
 
 
 def single(st):

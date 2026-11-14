@@ -1,0 +1,6 @@
+procedure "escribe" only uses nums[i]: pass that element instead of the array "nums" and the index "i"
+function "suma" uses "n" as the number of elements of "nums"
+function "busca" uses "n" as the number of elements of "nums"
+write the body of this "for" between begin and end
+this loop goes on after finding what it looks for
+write the body of this "if" between begin and end

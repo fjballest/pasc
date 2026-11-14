@@ -28,6 +28,14 @@ LIMITS = {
 	'boolean_if': True,
 	# x = True, x <> False, ...: use x or not x
 	'boolean_compare': True,
+	# if/while/for bodies must be written between begin and end
+	'begin_end': True,
+	# for loop that sets a boolean when it finds something but keeps going
+	'search_loop': True,
+	# routine taking an array and an index used only as a[i]: pass a[i]
+	'array_index_param': True,
+	# routine taking an array and its number of elements: use a record
+	'array_count_param': True,
 	# naming style
 	'const_uppercase': True,	# constants and enumeration values start uppercase
 	'type_uppercase': True,		# type names start uppercase

@@ -4,3 +4,4 @@ returning true or false from both branches of an if: return the negation of the 
 "<> False" is not needed: use the condition itself
 "= False" is not needed: use "not" and the condition
 assigning true or false in both branches of an if: assign the condition instead
+write the body of this

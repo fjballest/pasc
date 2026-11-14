@@ -510,6 +510,41 @@ class Compiler:
 			else:
 				self.rt.info.vars.append((text, 'local', sym.where, t))
 
+	def unchanged_params(self, r, params):
+		"""Value parameters of array or record type that r's body cannot change."""
+		from .lint import walk
+		cands = {pk for pk, ptext, pos, mode, t in params
+			if mode == 'value' and (t.is_array or t.is_record)}
+		if not cands:
+			return set()
+
+		def root(e):
+			while isinstance(e, (A.Field, A.Index)):
+				e = e.base
+			return e.name if isinstance(e, A.Name) else None
+
+		changed = set()
+		for n, par in walk(r.body):
+			if isinstance(n, A.Assign):
+				changed.add(root(n.target))
+			elif isinstance(n, A.AddrOf):
+				changed.add(root(n.expr))
+			elif isinstance(n, (A.Call, A.ProcCall)):
+				c = n.call if isinstance(n, A.ProcCall) else n
+				if not isinstance(c, A.Call) or not isinstance(c.func, A.Name):
+					continue
+				s = self.find(c.func.name)
+				if c.func.name == r.name[0]:
+					modes = [m for pk, pt, pp, m, t in params]
+				elif s is not None and s.kind == 'routine':
+					modes = [p[3] for p in s.params]
+				else:
+					modes = ['var'] * len(c.args)	# builtins: be conservative
+				for a, m in zip(c.args, modes):
+					if m == 'var':
+						changed.add(root(a.expr))
+		return cands - changed
+
 	def param_type(self, tn):
 		t = self.resolve_type(tn)
 		return t
@@ -540,11 +575,17 @@ class Compiler:
 		ctx.inits = []
 		saved = self.rt
 		self.rt = ctx
+		unchanged = self.unchanged_params(r, params)
 		for pk, ptext, pos, mode, t in params:
 			if pk == 'result' and ret is not None:
 				self.error('Duplicate identifier "result"', r.body)
 			ps = Sym('var', ptext, t)
 			if mode == 'var':
+				ps.where = ('r', ctx.alloc(8))
+				info.params.append(('ref', ps.where[1], None))
+			elif pk in unchanged:
+				# an array or record the routine never changes is passed by
+				# reference: same meaning, but no copy (and no stack overflow)
 				ps.where = ('r', ctx.alloc(8))
 				info.params.append(('ref', ps.where[1], None))
 			else:
@@ -1833,8 +1874,11 @@ VOID = _Void()
 
 
 def compile_program(tree, fname, lint=False):
+	from .indent import check_indentation
+	iwarn = check_indentation(tree, fname)
 	c = Compiler(fname, lint)
 	prog = c.program(tree)
+	prog.warnings[:0] = iwarn
 	if lint:
 		from .lint import lint_program
 		found = c.lints + lint_program(tree, prog)

@@ -32,6 +32,9 @@ def read(p, mode='rb'):
 def main():
 	verbose = '-v' in sys.argv
 	names = [a for a in sys.argv[1:] if not a.startswith('-')] or cases.programs()
+	# programs added to the course directory after the fpc results were
+	# recorded (run gen_expected.py to add them)
+	names = [n for n in names if os.path.exists(os.path.join(EXP, n[:-2] + '.status'))]
 	tmp = tempfile.mkdtemp(prefix='pasc-test-')
 	ok = fail = known = 0
 	for name in names:

@@ -5,6 +5,39 @@ import sys
 
 MAXLINE = 200		# characters shown for one variable
 MAXELEMS = 12		# array elements shown
+MAXSCAN = 4000		# array elements examined to find runs of equal values
+RUN = 3			# longer runs of equal (or garbage) elements are abbreviated
+
+
+def is_garbage(text):
+	return '<garbage' in text or '<out of range' in text or '<invalid' in text or '<dangling' in text
+
+
+def runs(keys):
+	"""Group consecutive equal keys (garbage counts as equal to garbage).
+	Yields (start, end) index ranges, end exclusive."""
+	i = 0
+	n = len(keys)
+	while i < n:
+		j = i + 1
+		k = 'garbage' if is_garbage(keys[i]) else keys[i]
+		while j < n and ('garbage' if is_garbage(keys[j]) else keys[j]) == k:
+			j += 1
+		yield i, j
+		i = j
+
+
+def abbreviate(keys):
+	"""Indexes to show: runs longer than RUN show their first two elements,
+	'...' (None) and the last one."""
+	out = []
+	for i, j in runs(keys):
+		if j - i > RUN:
+			out += [i, i + 1, None, j - 1]
+		else:
+			out += list(range(i, j))
+	return out
+
 
 
 def char_repr(c):
@@ -79,12 +112,17 @@ class Formatter:
 				return str_repr(bytes(mem[addr:addr + t.count]))
 			if depth > 3:
 				return '[...]'
+			scan = min(t.count, MAXSCAN)
+			vals = [self.value(t.elem, addr + i * t.elem.size, depth + 1) for i in range(scan)]
 			items = []
-			n = min(t.count, MAXELEMS)
-			for i in range(n):
-				items.append(self.value(t.elem, addr + i * t.elem.size, depth + 1))
-			if t.count > n:
-				items.append('... %d more' % (t.count - n))
+			for i in abbreviate(vals):
+				if len(items) >= MAXELEMS:
+					items.append('... %d more' % (t.count - i if i is not None else 0))
+					break
+				items.append('...' if i is None else vals[i])
+			else:
+				if t.count > scan:
+					items.append('... %d more' % (t.count - scan))
 			return '[' + ', '.join(items) + ']'
 		if t.is_record:
 			if depth > 3:
@@ -160,8 +198,17 @@ class Pretty:
 			return out + [pad + ')']
 		if t.is_array and not t.is_chararray() and depth < self.maxdepth:
 			out = [pad + prefix + '[']
-			n = min(t.count, self.maxelems)
-			for i in range(n):
+			scan = min(t.count, MAXSCAN)
+			keys = [f.value(t.elem, addr + i * t.elem.size, depth + 1) for i in range(scan)]
+			shown = 0
+			for i in abbreviate(keys):
+				if shown >= self.maxelems:
+					out.append(pad + '    ... %d more' % (t.count - (i if i is not None else scan)))
+					break
+				if i is None:
+					out.append(pad + '    ...')
+					continue
+				shown += 1
 				idx = t.lo + i
 				if t.index.is_char:
 					label = char_repr(idx)
@@ -172,8 +219,9 @@ class Pretty:
 				else:
 					label = str(idx)
 				out += self.lines('[%s] = ' % label, t.elem, addr + i * t.elem.size, ind + 1, depth + 1, ptrs, seen)
-			if t.count > n:
-				out.append(pad + '    ... %d more' % (t.count - n))
+			else:
+				if t.count > scan:
+					out.append(pad + '    ... %d more' % (t.count - scan))
 			return out + [pad + ']']
 		if t.is_pointer and t.target is not None:
 			p = struct.unpack_from('<Q', f.mem, addr)[0]
@@ -217,9 +265,7 @@ def dump_stack(vm, pc, fp, level=0, out=None):
 			wk, off = where
 			if wk == 'r':
 				addr = struct.unpack_from('<Q', vm.mem, rfp + off)[0]
-				if kind == 'result':
-					kind = 'result'
-				else:
+				if kind not in ('result', 'param'):
 					kind = 'var param'
 				if not (16 <= addr < len(vm.mem)):
 					addr = None
