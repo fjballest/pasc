@@ -11,7 +11,7 @@ fail = 0
 for f in sorted(os.listdir(LINT)):
 	if not f.endswith('.p'):
 		continue
-	r = subprocess.run([sys.executable, PASC, '-w', '-c', f], cwd=LINT, capture_output=True)
+	r = subprocess.run([sys.executable, PASC, '-g', '-w', '-c', f], cwd=LINT, capture_output=True)
 	got = [l for l in r.stderr.decode().splitlines() if 'warning:' in l]
 	want = [l for l in open(os.path.join(LINT, f[:-2] + '.expected')).read().splitlines() if l.strip()]
 	probs = ['missing: ' + w for w in want if not any(w in g for g in got)]

@@ -9,7 +9,7 @@ PASC = os.path.join(os.path.dirname(HERE), 'pasc.py')
 fail = 0
 
 def run(*args):
-	r = subprocess.run([sys.executable, PASC] + list(args), cwd=D, capture_output=True)
+	r = subprocess.run([sys.executable, PASC, '-g'] + list(args), cwd=D, capture_output=True)
 	return r.stdout.decode(), r.stderr.decode(), r.returncode
 
 def check(what, cond):

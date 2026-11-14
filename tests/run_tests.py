@@ -41,7 +41,7 @@ def main():
 		base = os.path.join(EXP, name[:-2])
 		d = cases.fresh_dir(tmp, name)
 		try:
-			r = subprocess.run([sys.executable, PASC] + (['-z'] if not os.environ.get('RANDOM_MEM') else []) + [name], cwd=d, input=cases.stdin_for(name),
+			r = subprocess.run([sys.executable, PASC, '-g'] + (['-z'] if not os.environ.get('RANDOM_MEM') else []) + [name], cwd=d, input=cases.stdin_for(name),
 				capture_output=True, timeout=60)
 			out, err, status = r.stdout, r.stderr.decode('latin-1'), str(r.returncode)
 		except subprocess.TimeoutExpired as e:

@@ -71,8 +71,9 @@ class Routine:
 
 
 class Compiler:
-	def __init__(self, fname, lint=False, debug=False):
+	def __init__(self, fname, lint=False, debug=False, early_globals=False):
 		self.fname = fname
+		self.early_globals = early_globals	# -g: globals before routines
 		self.debug = debug		# emit LINE instructions for pascdb
 		self.lint = lint
 		self.lints = []			# style warnings (pasc -w)
@@ -1796,6 +1797,14 @@ class Compiler:
 		main.line = p.body.line
 		self.prog.routines.append(main)
 		self.rt = Routine(None, main)
+		if not self.early_globals:
+			# global variables are the main program's locals: they go after
+			# every procedure and function, right before the main program
+			last = max((k for k, d in enumerate(p.decls) if isinstance(d, A.Routine)), default=-1)
+			for d in (p.decls[:last] if last > 0 else []):
+				if isinstance(d, A.VarDecl):
+					self.error('global variables must be declared after all procedures and functions, '
+						'just before the main program (pasc -g allows them earlier)', d)
 		self.declarations(p.decls)
 		self.rt.tempmark = 0
 		lab = self.newlabel()
@@ -1891,10 +1900,10 @@ class _Void(T.Type):
 VOID = _Void()
 
 
-def compile_program(tree, fname, lint=False, debug=False):
+def compile_program(tree, fname, lint=False, debug=False, early_globals=False):
 	from .indent import check_indentation
 	iwarn = check_indentation(tree, fname)
-	c = Compiler(fname, lint, debug)
+	c = Compiler(fname, lint, debug, early_globals)
 	prog = c.program(tree)
 	prog.warnings[:0] = iwarn
 	if lint:

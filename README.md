@@ -42,6 +42,7 @@ pasc -S prog.p           # print the bytecode
 pasc --stack 64 prog.p   # stack size in MB (default 16)
 pasc -w prog.p           # also report style warnings (see below)
 pasc -z prog.p           # uninitialised memory is zero, not random
+pasc -g prog.p           # allow global variables before procedures
 pasc --seed 7 prog.p     # repeatable random contents for uninitialised memory
 ```
 
@@ -64,6 +65,10 @@ These deliberately go beyond (or against) fpc, to help students learn:
   results and blocks from `new` start with garbage, so a program that
   forgets to initialise something misbehaves visibly. fpc zeroes global
   variables; `-z` makes all of it zero. `--seed N` repeats a run.
+* **Global variables last.** Global variables must be declared after all
+  procedures and functions, just before the main program, so they work as
+  the main program's locals and routines cannot use them. `-g` (for pasc
+  and pascdb) allows them earlier.
 * **Typed constants are constants.** Their value can be used in later
   constant declarations and types (`const N: integer = 3; type T =
   array[1..N] of real;`), and they cannot be assigned. fpc allows neither.

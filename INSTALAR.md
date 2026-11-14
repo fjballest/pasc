@@ -519,6 +519,7 @@ pasc compila el programa y, si no hay errores, lo ejecuta. Opciones útiles:
 | `pasc prog.p` | compila y ejecuta `prog.p` |
 | `pasc -c prog.p` | solo comprueba si el programa tiene errores, sin ejecutarlo |
 | `pasc -w prog.p` | además avisa de problemas de estilo: líneas largas, procedimientos demasiado largos, código repetido, nombres mal escritos... |
+| `pasc -g prog.p` | permite declarar variables globales antes de los procedimientos y funciones (normalmente deben ir justo antes del programa principal) |
 | `pasc -z prog.p` | las variables sin inicializar valen 0 en vez de basura aleatoria |
 | `pasc --version` | muestra la versión de pasc |
 

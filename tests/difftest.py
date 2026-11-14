@@ -75,7 +75,9 @@ def main():
 			with open(src[:-2] + '.in', 'rb') as f:
 				inp = f.read()
 		d = setup(tmp, name, src)
-		o, e, s = run([sys.executable, PASC, '-z', name], d, inp)
+		# -g: fpc accepts global variables anywhere
+		flags = ['-z'] if name.startswith('restr_') else ['-z', '-g']
+		o, e, s = run([sys.executable, PASC] + flags + [name], d, inp)
 		e = e.decode('latin-1')
 		probs = []
 		if name.startswith('restr_'):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pascdb: watch a pasc program run, step by step, in the browser.
 
-usage: pascdb [--port N] [--no-browser] prog.p
+usage: pascdb [-g] [--port N] [--no-browser] prog.p
 
 The page shows the source with the statement about to run, the program's
 data drawn as boxes (records, arrays, linked lists through the heap), the
@@ -22,13 +22,14 @@ from pascdblib.server import serve		# noqa: E402
 
 
 def usage():
-	sys.stderr.write('usage: pascdb [--port N] [--no-browser] prog.p\n')
+	sys.stderr.write('usage: pascdb [-g] [--port N] [--no-browser] prog.p\n')
 	sys.exit(2)
 
 
 def main(argv):
 	port = 0
 	browser = True
+	early_globals = False
 	files = []
 	i = 0
 	while i < len(argv):
@@ -40,6 +41,8 @@ def main(argv):
 		if a == '--port' and i + 1 < len(argv):
 			i += 1
 			port = int(argv[i])
+		elif a == '-g':
+			early_globals = True
 		elif a == '--no-browser':
 			browser = False
 		elif a.startswith('-'):
@@ -58,7 +61,7 @@ def main(argv):
 		sys.stderr.write('pascdb: %s: %s\n' % (path, e.strerror))
 		return 1
 	try:
-		prog = compile_program(parse(src, fname), fname, debug=True)
+		prog = compile_program(parse(src, fname), fname, debug=True, early_globals=early_globals)
 	except CompileError as e:
 		sys.stderr.write('%s\n' % e)
 		return 1
