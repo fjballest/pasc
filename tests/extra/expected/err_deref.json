@@ -1,3 +1,4 @@
 {
- "compile": "err_deref.p(6,5) Error: Illegal qualifier"
+ "compile": "err_deref.p(6,5) Error: Illegal qualifier",
+ "sha1": "c7548055afb182f79f62e4ee697b6f75729edf36"
 }

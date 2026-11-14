@@ -1,3 +1,4 @@
 {
- "compile": "forvar3.p(2,72) Error: Illegal counter variable"
+ "compile": "forvar3.p(2,72) Error: Illegal counter variable",
+ "sha1": "ed6e1151c4cd5809c3958173a5e8cdadf6ee9f74"
 }

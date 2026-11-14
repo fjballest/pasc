@@ -1,3 +1,4 @@
 {
- "compile": "err_dupvar.p(5,3) Error: Duplicate identifier \"a\""
+ "compile": "err_dupvar.p(5,3) Error: Duplicate identifier \"a\"",
+ "sha1": "f1504ee980321dba8123a1d169f574b1b2bd50e3"
 }

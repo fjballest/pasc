@@ -1,4 +1,5 @@
 {
  "out": "abc\nxyz\nqyz\nqyz\nab\u0000\nx\u0000\u0000\n",
- "status": 0
+ "status": 0,
+ "sha1": "f4739d04b946e53eeaf4968957a7340fd77ea5ac"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_arrdim.p(6,7) Error: Illegal qualifier"
+ "compile": "err_arrdim.p(6,7) Error: Illegal qualifier",
+ "sha1": "c06df648ec7ae5b2f4caeb3668beebff95f14a1f"
 }

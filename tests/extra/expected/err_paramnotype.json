@@ -1,3 +1,4 @@
 {
- "compile": "err_paramnotype.p(3,14) Fatal: Syntax error, \":\" expected but \")\" found"
+ "compile": "err_paramnotype.p(3,14) Fatal: Syntax error, \":\" expected but \")\" found",
+ "sha1": "91cc9f21859177df5e5b2baa0de98da9e4915f2d"
 }

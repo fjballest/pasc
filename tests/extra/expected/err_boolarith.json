@@ -1,3 +1,4 @@
 {
- "compile": "err_boolarith.p(6,9) Error: Operator is not overloaded: \"Boolean\" + \"ShortInt\""
+ "compile": "err_boolarith.p(6,9) Error: Operator is not overloaded: \"Boolean\" + \"ShortInt\"",
+ "sha1": "5ae64a70b3bca7850154e568ce3c8e40b7939a51"
 }

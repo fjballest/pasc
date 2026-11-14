@@ -1,3 +1,4 @@
 {
- "compile": "err_recfield.p(6,3) Error: Duplicate identifier \"R\""
+ "compile": "err_recfield.p(6,3) Error: Duplicate identifier \"R\"",
+ "sha1": "3deba43659dd3492b13c987b398094c6c75343a3"
 }

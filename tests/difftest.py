@@ -6,7 +6,7 @@ The fpc results are cached in tests/extra/expected so the suite also runs
 where fpc is not installed.
 usage: difftest.py [-v] [-r] [names...]   (-r: rerun fpc, refresh cache)
 """
-import os, re, sys, shutil, subprocess, tempfile, json
+import os, re, sys, shutil, subprocess, tempfile, json, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTRA = os.path.join(HERE, 'extra')
@@ -35,9 +35,14 @@ def setup(tmp, name, src):
 
 def fpc_result(tmp, name, src, inp, refresh):
 	cp = os.path.join(CACHE, name[:-2] + '.json')
-	if not refresh and os.path.exists(cp) and os.path.getmtime(cp) >= os.path.getmtime(src):
+	h = hashlib.sha1(open(src, 'rb').read() + b'\0' + inp).hexdigest()
+	if not refresh and os.path.exists(cp):
 		with open(cp) as f:
-			return json.load(f)
+			res = json.load(f)
+		# the cache is valid for this exact program and input; without fpc
+		# it is used anyway
+		if res.get('sha1') == h or shutil.which('fpc') is None:
+			return res
 	d = setup(tmp, name, src)
 	c = subprocess.run(['fpc', '-g', '-oa.out', name], cwd=d, capture_output=True)
 	log = c.stdout.decode('latin-1')
@@ -47,6 +52,7 @@ def fpc_result(tmp, name, src, inp, refresh):
 	else:
 		o, e, s = run(['./a.out'], d, inp)
 		res = {'out': o.decode('latin-1'), 'status': s}
+	res['sha1'] = h
 	os.makedirs(CACHE, exist_ok=True)
 	with open(cp, 'w') as f:
 		json.dump(res, f, indent=1)

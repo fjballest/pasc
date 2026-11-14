@@ -1,3 +1,4 @@
 {
- "compile": "err_badchar.p(4,12) Fatal: illegal character \"'?'\" ($3F)"
+ "compile": "err_badchar.p(4,12) Fatal: illegal character \"'?'\" ($3F)",
+ "sha1": "329b98f72b67929793d1346ddc01607dbe8ca4ef"
 }

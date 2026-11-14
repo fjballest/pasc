@@ -1,3 +1,4 @@
 {
- "compile": "err_varconst.p(7,5) Error: Variable identifier expected"
+ "compile": "err_varconst.p(7,5) Error: Variable identifier expected",
+ "sha1": "6ff7f86f0459a943cbb2fb37f191472554bf569c"
 }

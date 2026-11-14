@@ -1,3 +1,4 @@
 {
- "compile": "err_widthint.p(4,15) Error: Illegal use of ':'"
+ "compile": "err_widthint.p(4,15) Error: Illegal use of ':'",
+ "sha1": "66f9e32b81f0095eb960a1fc158b5effa155a24b"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_assignfunc.p(8,2) Error: Argument cannot be assigned to"
+ "compile": "err_assignfunc.p(8,2) Error: Argument cannot be assigned to",
+ "sha1": "f69285d5ce08986a3d804833ef64a8d5900f4344"
 }

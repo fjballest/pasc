@@ -1,3 +1,4 @@
 {
- "compile": "err_progdup.p(4,3) Error: Duplicate identifier \"p\""
+ "compile": "err_progdup.p(4,3) Error: Duplicate identifier \"p\"",
+ "sha1": "2be2bb2d78069e67a07003a7035c9d4a0ef49b7f"
 }

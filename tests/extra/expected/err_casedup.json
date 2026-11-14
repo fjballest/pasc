@@ -1,3 +1,4 @@
 {
- "compile": "err_casedup.p(8,6) Error: duplicate case label"
+ "compile": "err_casedup.p(8,6) Error: duplicate case label",
+ "sha1": "f11005bcd9c2754330300e9df53cd3b02acebd0e"
 }

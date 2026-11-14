@@ -1,3 +1,4 @@
 {
- "compile": "err_badtype.p(4,5) Error: Identifier not found \"foo\""
+ "compile": "err_badtype.p(4,5) Error: Identifier not found \"foo\"",
+ "sha1": "03a9d86d2c5eb9fcc851b573b5690350f0a442ee"
 }

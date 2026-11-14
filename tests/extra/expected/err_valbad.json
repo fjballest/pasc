@@ -1,3 +1,4 @@
 {
- "compile": "err_valbad.p(6,7) Error: Incompatible type for arg no. 2: Got \"ShortInt\", expected \"ShortString\""
+ "compile": "err_valbad.p(6,7) Error: Incompatible type for arg no. 2: Got \"ShortInt\", expected \"ShortString\"",
+ "sha1": "0d1d96d26ade3c20dea785c68b0bf597f584e12f"
 }

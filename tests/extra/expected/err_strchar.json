@@ -1,3 +1,4 @@
 {
- "compile": "err_strchar.p(7,7) Error: Incompatible types: got \"ShortString\" expected \"Char\""
+ "compile": "err_strchar.p(7,7) Error: Incompatible types: got \"ShortString\" expected \"Char\"",
+ "sha1": "9a7d4d72bdfa7667521a0cd36889e7886c78a06b"
 }

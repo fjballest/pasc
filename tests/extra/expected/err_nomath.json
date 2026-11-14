@@ -1,3 +1,4 @@
 {
- "compile": "err_nomath.p(4,12) Error: Operator is not overloaded: \"ShortInt\" ** \"ShortInt\""
+ "compile": "err_nomath.p(4,12) Error: Operator is not overloaded: \"ShortInt\" ** \"ShortInt\"",
+ "sha1": "34c63d740935caf6b878497571c684af89a942df"
 }

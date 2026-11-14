@@ -1,3 +1,4 @@
 {
- "compile": "err_resultdup.p(4,1) Error: Duplicate identifier \"result\""
+ "compile": "err_resultdup.p(4,1) Error: Duplicate identifier \"result\"",
+ "sha1": "27af551dba7064f39abe4b2955e9cddc090a9771"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_reccmp.p(8,8) Error: Operator is not overloaded: \"R\" = \"R\""
+ "compile": "err_reccmp.p(8,8) Error: Operator is not overloaded: \"R\" = \"R\"",
+ "sha1": "26618c6340802cd8336fb161e3f811138df29eb9"
 }

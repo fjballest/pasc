@@ -1,3 +1,4 @@
 {
- "compile": "err_strconst.p(6,4) Error: range check error while evaluating constants (4 must be between 0 and 3)"
+ "compile": "err_strconst.p(6,4) Error: range check error while evaluating constants (4 must be between 0 and 3)",
+ "sha1": "9eb79820dd7f89c56e46cf462f20a75a746a3207"
 }

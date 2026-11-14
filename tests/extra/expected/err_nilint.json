@@ -1,3 +1,4 @@
 {
- "compile": "err_nilint.p(6,7) Error: Incompatible types: got \"Pointer\" expected \"LongInt\""
+ "compile": "err_nilint.p(6,7) Error: Incompatible types: got \"Pointer\" expected \"LongInt\"",
+ "sha1": "ef14d26a8c098c937c36e090a07107f9e6d9fd8b"
 }

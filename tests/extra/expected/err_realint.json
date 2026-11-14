@@ -1,3 +1,4 @@
 {
- "compile": "err_realint.p(6,7) Error: Incompatible types: got \"Single\" expected \"LongInt\""
+ "compile": "err_realint.p(6,7) Error: Incompatible types: got \"Single\" expected \"LongInt\"",
+ "sha1": "b657cc8c343f6e8a3613fb7de0f623fab265aeb4"
 }

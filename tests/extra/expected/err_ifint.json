@@ -1,3 +1,4 @@
 {
- "compile": "err_ifint.p(6,5) Error: Incompatible types: got \"LongInt\" expected \"Boolean\""
+ "compile": "err_ifint.p(6,5) Error: Incompatible types: got \"LongInt\" expected \"Boolean\"",
+ "sha1": "b8f738d2bb25f9ff7c2ed162eee351128b289586"
 }

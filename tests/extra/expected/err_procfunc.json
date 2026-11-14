@@ -1,3 +1,4 @@
 {
- "compile": "err_procfunc.p(7,11) Error: Can't read or write variables of this type"
+ "compile": "err_procfunc.p(7,11) Error: Can't read or write variables of this type",
+ "sha1": "feddd5351cb8f24ff6e05e95cb87eb62d60fe33b"
 }

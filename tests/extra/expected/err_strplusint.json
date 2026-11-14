@@ -1,3 +1,4 @@
 {
- "compile": "err_strplusint.p(6,11) Error: Operator is not overloaded: \"Char\" + \"ShortInt\""
+ "compile": "err_strplusint.p(6,11) Error: Operator is not overloaded: \"Char\" + \"ShortInt\"",
+ "sha1": "9ed3f4e0bfc0abf4da378c031b397626bf0077d9"
 }

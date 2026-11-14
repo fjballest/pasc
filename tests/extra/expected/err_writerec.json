@@ -1,3 +1,4 @@
 {
- "compile": "err_writerec.p(8,12) Error: Can't read or write variables of this type"
+ "compile": "err_writerec.p(8,12) Error: Can't read or write variables of this type",
+ "sha1": "58c321f6b239127f7236e41205de3dfb43fac646"
 }

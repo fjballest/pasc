@@ -1,3 +1,4 @@
 {
- "compile": "err_casemix.p(7,5) Error: Constant and CASE types do not match"
+ "compile": "err_casemix.p(7,5) Error: Constant and CASE types do not match",
+ "sha1": "d420a82585e185b2f62bc4dafd40cae4c027dd84"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_funcstmt.p(8,3) Error: Illegal expression"
+ "compile": "err_funcstmt.p(8,3) Error: Illegal expression",
+ "sha1": "2edc7452d28ea70ce9de31041639f24bc61dc9c2"
 }

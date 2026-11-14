@@ -1,3 +1,4 @@
 {
- "compile": "err_typeexpr.p(4,17) Error: Can't read or write variables of this type"
+ "compile": "err_typeexpr.p(4,17) Error: Can't read or write variables of this type",
+ "sha1": "89bbe94e0950df543edd83357d57b668088d1dd9"
 }

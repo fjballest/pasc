@@ -1,3 +1,4 @@
 {
- "compile": "err_addrtype.p(7,7) Error: Incompatible types: got \"^Char\" expected \"^LongInt\""
+ "compile": "err_addrtype.p(7,7) Error: Incompatible types: got \"^Char\" expected \"^LongInt\"",
+ "sha1": "dad25045031bb1875a3e5f4097a7055918dde630"
 }

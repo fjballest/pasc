@@ -1,3 +1,4 @@
 {
- "compile": "err_divzero.p(6,9) Error: Division by zero"
+ "compile": "err_divzero.p(6,9) Error: Division by zero",
+ "sha1": "47cf55d467302ecff1491b311b8ff0a9341bda1e"
 }

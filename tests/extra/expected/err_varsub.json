@@ -1,3 +1,4 @@
 {
- "compile": "err_varsub.p(11,6) Error: Call by var for arg no. 1 has to match exactly: Got \"T\" expected \"LongInt\""
+ "compile": "err_varsub.p(11,6) Error: Call by var for arg no. 1 has to match exactly: Got \"T\" expected \"LongInt\"",
+ "sha1": "6401c4461b61fd4061c404e3c64908ddc98d6bf8"
 }

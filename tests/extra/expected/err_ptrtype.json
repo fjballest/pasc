@@ -1,3 +1,4 @@
 {
- "compile": "err_ptrtype.p(10,7) Error: Incompatible types: got \"P2\" expected \"P1\""
+ "compile": "err_ptrtype.p(10,7) Error: Incompatible types: got \"P2\" expected \"P1\"",
+ "sha1": "c6cbc7e7c1ca9e432400fc01ed87f133582c4ced"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_elsesemi.p(8,2) Fatal: Syntax error, \";\" expected but \"ELSE\" found"
+ "compile": "err_elsesemi.p(8,2) Fatal: Syntax error, \";\" expected but \"ELSE\" found",
+ "sha1": "b5cac644832ed794dafe01505af178a1aca8202f"
 }

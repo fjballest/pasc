@@ -1,3 +1,4 @@
 {
- "compile": "err_forassign.p(7,5) Error: Illegal assignment to for-loop variable \"i\""
+ "compile": "err_forassign.p(7,5) Error: Illegal assignment to for-loop variable \"i\"",
+ "sha1": "886f0a7d1c4e4a45e0f733afd05d5f836dc12958"
 }

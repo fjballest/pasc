@@ -1,3 +1,4 @@
 {
- "compile": "err_enumint.p(8,8) Error: Incompatible types: got \"ShortInt\" expected \"T\""
+ "compile": "err_enumint.p(8,8) Error: Incompatible types: got \"ShortInt\" expected \"T\"",
+ "sha1": "d7dcb2415bbaf2cfc6174b9c0dc42c6788f88852"
 }

@@ -1,3 +1,4 @@
 {
- "compile": "err_enumadd.p(8,8) Error: Incompatible types: got \"T\" expected \"Int64\""
+ "compile": "err_enumadd.p(8,8) Error: Incompatible types: got \"T\" expected \"Int64\"",
+ "sha1": "3da4038b41239ab8447843de024e151448afb4aa"
 }

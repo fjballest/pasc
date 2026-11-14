@@ -1,3 +1,4 @@
 {
- "compile": "err_semicolon.p(7,2) Fatal: Syntax error, \";\" expected but \"identifier I\" found"
+ "compile": "err_semicolon.p(7,2) Fatal: Syntax error, \";\" expected but \"identifier I\" found",
+ "sha1": "55977a367f25e7268802676c5c59d05db5390239"
 }

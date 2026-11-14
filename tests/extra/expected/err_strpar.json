@@ -1,3 +1,4 @@
 {
- "compile": "err_strpar.p(3,22) Error: Parameters or result types cannot contain local type definitions. Use a separate type definition in a type block."
+ "compile": "err_strpar.p(3,22) Error: Parameters or result types cannot contain local type definitions. Use a separate type definition in a type block.",
+ "sha1": "68c106e99883866fca2a568b9c55136eda543016"
 }

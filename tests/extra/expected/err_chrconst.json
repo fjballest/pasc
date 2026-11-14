@@ -1,3 +1,4 @@
 {
- "compile": "err_chrconst.p(6,14) Error: range check error while evaluating constants (256 must be between 0 and 255)"
+ "compile": "err_chrconst.p(6,14) Error: range check error while evaluating constants (256 must be between 0 and 255)",
+ "sha1": "2aa7a56a135e4b206d1d126fea718970d907982e"
 }

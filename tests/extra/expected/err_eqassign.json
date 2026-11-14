@@ -1,3 +1,4 @@
 {
- "compile": "err_eqassign.p(6,7) Error: Illegal expression"
+ "compile": "err_eqassign.p(6,7) Error: Illegal expression",
+ "sha1": "81607b332d2087f5f6770b73019d413b4ff3e432"
 }

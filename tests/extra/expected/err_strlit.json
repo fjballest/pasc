@@ -1,3 +1,4 @@
 {
- "compile": "err_strlit.p(4,10) Fatal: String exceeds line"
+ "compile": "err_strlit.p(4,10) Fatal: String exceeds line",
+ "sha1": "98e5f07e56676d15dfcea3771b75dc2cd02fcf7f"
 }

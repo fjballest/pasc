@@ -1,3 +1,4 @@
 {
- "compile": "err_vstr.p(11,5) Error: String types have to match exactly in $V+ mode"
+ "compile": "err_vstr.p(11,5) Error: String types have to match exactly in $V+ mode",
+ "sha1": "4378a25ab0761288a7abdc1319188873d766fc37"
 }
