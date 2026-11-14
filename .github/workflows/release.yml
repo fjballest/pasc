@@ -38,13 +38,15 @@ jobs:
         run: |
           pip install -q markdown-it-py mdit-py-plugins
           v=$(python3 -c 'import pasclib; print(pasclib.VERSION)')
-          mkdir -p docs
-          python3 packaging/docs/build-pdf.py INSTALAR.md docs/INSTALAR.pdf
-          cp docs/INSTALAR.pdf docs/pasc-$v-INSTALAR.pdf
+          mkdir -p pdfdocs
+          python3 packaging/docs/build-pdf.py INSTALAR.md pdfpdfdocs/INSTALAR.pdf
+          cp pdfpdfdocs/INSTALAR.pdf pdfdocs/pasc-$v-INSTALAR.pdf
+          cp docs/userguide.pdf pdfdocs/pasc-$v-userguide.pdf
+          cp docs/design.pdf pdfdocs/pasc-$v-design.pdf
       - uses: actions/upload-artifact@v4
         with:
           name: docs
-          path: docs/
+          path: pdfdocs/
 
   windows:
     needs: docs
@@ -55,7 +57,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docs
-          path: docs
+          path: pdfdocs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
@@ -74,7 +76,7 @@ jobs:
           python packaging\smoke_pascdb.py dist\pasc\pascdb.exe tests\features\stack1.p
       - name: installer
         run: |
-          Copy-Item docs\INSTALAR.pdf dist\pasc\
+          Copy-Item pdfdocs\INSTALAR.pdf dist\pasc\
           choco install innosetup -y --no-progress
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DVersion=${{ env.VERSION }} packaging\windows\pasc.iss
           Compress-Archive -Path dist\pasc\* -DestinationPath dist\pasc-${{ env.VERSION }}-windows-portable.zip
@@ -93,7 +95,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docs
-          path: docs
+          path: pdfdocs
       # python.org builds are universal2 and run on macOS 10.9 and later
       - name: python (universal2)
         run: |
@@ -114,7 +116,7 @@ jobs:
           $PY packaging/smoke_pascdb.py dist/pasc/pascdb tests/features/stack1.p
       - name: installer
         run: |
-          cp docs/INSTALAR.pdf dist/pasc/
+          cp pdfdocs/INSTALAR.pdf dist/pasc/
           packaging/macos/build-pkg.sh $VERSION
           (cd dist && zip -qry pasc-$VERSION-macos-portable.zip pasc)
       - uses: actions/upload-artifact@v4
@@ -132,7 +134,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docs
-          path: docs
+          path: pdfdocs
       # build on an old glibc (Debian 9, 2.24) so it runs on old and new distros
       - name: build
         run: |
@@ -150,7 +152,7 @@ jobs:
           d=pasc-$VERSION-linux-x86_64
           mkdir -p dist/$d
           cp -R dist/pasc dist/$d/pasc
-          cp packaging/linux/install.sh README.md docs/INSTALAR.pdf dist/$d/
+          cp packaging/linux/install.sh README.md pdfdocs/INSTALAR.pdf dist/$d/
           tar -C dist -czf dist/$d.tar.gz $d
           # also check it on a current distro
           docker run --rm -v "$PWD/dist":/d ubuntu:24.04 sh -c "cd /d/$d && ./install.sh && /root/.local/bin/pasc --version"
@@ -167,12 +169,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: docs
-          path: docs
+          path: pdfdocs
       - name: zip
         run: |
           v=$(python3 -c 'import pasclib; print(pasclib.VERSION)')
           git archive --format=zip --prefix=pasc-$v/ -o pasc-$v-source.zip HEAD
-          mkdir -p tmp/pasc-$v && cp docs/INSTALAR.pdf tmp/pasc-$v/
+          mkdir -p tmp/pasc-$v && cp pdfdocs/INSTALAR.pdf tmp/pasc-$v/
           (cd tmp && zip -q ../pasc-$v-source.zip pasc-$v/INSTALAR.pdf)
       - uses: actions/upload-artifact@v4
         with:
@@ -193,7 +195,7 @@ jobs:
         with:
           files: assets/*
           body: |
-            Installers for pasc. None of them needs Python. Students: read `pasc-*-INSTALAR.pdf` (step-by-step guide in Spanish); every installer and zip also includes it as INSTALAR.pdf.
+            Installers for pasc. None of them needs Python. Students: read `pasc-*-INSTALAR.pdf` (step-by-step guide in Spanish); every installer and zip also includes it as INSTALAR.pdf. `pasc-*-userguide.pdf` is the user guide of pasc and pascdb, and `pasc-*-design.pdf` describes their internals.
             * Windows 7 or later: run `pasc-*-windows-setup.exe` (no administrator rights needed), then open a new terminal.
             * macOS 10.13 or later, Apple silicon or Intel: open `pasc-*-macos.pkg`. If macOS refuses to open it, right-click it and choose Open.
             * Linux x86_64 (glibc 2.24 or later): unpack `pasc-*-linux-x86_64.tar.gz` and run `./install.sh`.
