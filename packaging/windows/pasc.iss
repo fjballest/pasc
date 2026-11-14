@@ -1,4 +1,4 @@
-; Inno Setup script for the pasc Windows installer.
+﻿; Inno Setup script for the pasc Windows installer.
 ; Built by .github/workflows/release.yml:  iscc /DVersion=1.0 pasc.iss
 ; Installs for the current user only (no administrator rights needed)
 ; and adds the install directory to the user's PATH.
