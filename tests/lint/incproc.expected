@@ -1,0 +1,1 @@
+incproc.p:13:1: warning: procedure "doble" only computes a value for var parameter "x": it should be a function

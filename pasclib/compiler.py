@@ -204,6 +204,9 @@ class Compiler:
 		for sc in reversed(self.scopes):
 			if name in sc:
 				return sc[name]
+		if name in ('inc', 'dec'):
+			self.error('%s is not supported: write x := x %s 1, or a procedure that does it'
+				% (name, '+' if name == 'inc' else '-'), node)
 		self.error('Identifier not found "%s"' % (node.text if node is not None and hasattr(node, 'text') else name), node)
 
 	def use(self, name, node):
