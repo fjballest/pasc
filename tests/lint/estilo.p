@@ -12,9 +12,9 @@ type
 var
 	Total: integer;
 	n: integer;
-procedure Escribe(a, b, c, d, e, f: integer);
+procedure Escribe(a, b, c, d, e, f, g, h: integer);
 begin
-	writeln(a + b + c + d + e + f);
+	writeln(a + b + c + d + e + f + g + h);
 end;
 function doble(x: integer): integer;
 var
@@ -42,7 +42,7 @@ begin
 	writeln(doble(3));
 	N := N + 1;
 	Total := 0;
-	Escribe(1, 2, 3, 4, 5, 6);
+	Escribe(1, 2, 3, 4, 5, 6, 7, 8);
 	calcula(3, total);
 	writeln(otro(1), maxNotas);
 end.
