@@ -318,3 +318,51 @@ def val_enum(s, names):
 			k += 1
 		best = max(best, k + 1)
 	return 0, best + sp
+
+
+_ATANHI = (4.63647609000806093515e-01, 7.85398163397448278999e-01,
+	9.82793723247329054082e-01, 1.57079632679489655800e+00)
+_ATANLO = (2.26987774529616870924e-17, 3.06161699786838301793e-17,
+	1.39033110312309984516e-17, 6.12323399573676603587e-17)
+_AT = (3.33333333333329318027e-01, -1.99999999998764832476e-01,
+	1.42857142725034663711e-01, -1.11111104054623557880e-01,
+	9.09088713343650656196e-02, -7.69187620504482999495e-02,
+	6.66107313738753120669e-02, -5.83357013379057348645e-02,
+	4.97687799461593236017e-02, -3.65315727442169155270e-02,
+	1.62858201153657823623e-02)
+
+
+def arctan(d):
+	"""fpc's arctan (fdlibm's atan, rtl/inc/genmath.inc), so the last digit
+	is the same on every platform (the C libraries differ there)."""
+	if d != d:
+		return d
+	hx = struct.unpack('<q', struct.pack('<d', d))[0] >> 32
+	ix = hx & 0x7fffffff
+	if ix >= 0x44100000:			# |x| >= 2^66
+		r = _ATANHI[3] + _ATANLO[3]
+		return r if d > 0 else -r
+	if ix < 0x3fdc0000:			# |x| < 0.4375
+		if ix < 0x3e200000:
+			return d
+		i = -1
+	else:
+		d = abs(d)
+		if ix < 0x3ff30000:		# |x| < 1.1875
+			if ix < 0x3fe60000:
+				i, d = 0, (2.0 * d - 1.0) / (2.0 + d)
+			else:
+				i, d = 1, (d - 1.0) / (d + 1.0)
+		elif ix < 0x40038000:		# |x| < 2.4375
+			i, d = 2, (d - 1.5) / (1.0 + 1.5 * d)
+		else:
+			i, d = 3, -1.0 / d
+	a = _AT
+	z = d * d
+	w = z * z
+	s1 = z * (a[0] + w * (a[2] + w * (a[4] + w * (a[6] + w * (a[8] + w * a[10])))))
+	s2 = w * (a[1] + w * (a[3] + w * (a[5] + w * (a[7] + w * a[9]))))
+	if i < 0:
+		return d - d * (s1 + s2)
+	z = _ATANHI[i] - ((d * (s1 + s2) - _ATANLO[i]) - d)
+	return -z if hx < 0 else z

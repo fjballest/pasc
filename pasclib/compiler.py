@@ -14,7 +14,7 @@ from . import ast as A
 from . import code as C
 from . import types as T
 from .errors import CompileError
-from .fmt import to_single
+from .fmt import arctan, to_single
 from .limits import LIMITS
 
 IO_BUILTINS = frozenset('write writeln read readln eof eoln assign reset rewrite close'.split())
@@ -1928,7 +1928,7 @@ def real_fn(name, v):
 		except OverflowError:
 			return math.inf
 	if name == 'arctan':
-		return math.atan(v)
+		return arctan(v)
 	if not math.isfinite(v):
 		return math.nan
 	if name == 'cos':

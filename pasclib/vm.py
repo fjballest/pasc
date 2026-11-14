@@ -20,7 +20,7 @@ import time
 
 from . import code as C
 from .errors import RunError, Halt, RTE_NAMES, EXCEPTIONS
-from .fmt import to_single, real_to_str, intpower, power, fpc_round, val_int, val_real, val_enum
+from .fmt import arctan, to_single, real_to_str, intpower, power, fpc_round, val_int, val_real, val_enum
 from .textio import TextFile, std_files
 from . import debug
 
@@ -651,7 +651,7 @@ class VM:
 		elif name == 'arctan':
 			if x != x:
 				raise RunError(207)
-			stack[-1] = math.atan(x)
+			stack[-1] = arctan(x)
 		elif name == 'exp':
 			if x != x:
 				raise RunError(207)

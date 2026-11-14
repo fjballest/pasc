@@ -6,6 +6,6 @@ const
 
 begin
 	writeln(ln(0), exp(1000), ln(-2));
-	writeln(cos(E), arctan(E), exp(E), ln(E), frac(E), int(E));
+	writeln(cos(E), arctan(E):0:12, exp(E), ln(E), frac(E), int(E));
 	writeln(odd(7), pi);
 end.

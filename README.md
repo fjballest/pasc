@@ -265,6 +265,10 @@ text variables. As in fpc, `and` and `or` short-circuit.
 * Floating-point division by zero is error 200 and invalid operations are
   207, as fpc reports them on x86-64 and Windows. fpc on arm64 macOS
   reports 216 for both.
+* `arctan` is fpc's own routine (fdlibm's), so it gives the same result on
+  every system; the other transcendental functions (`sin`, `cos`, `exp`,
+  `ln`) use the C library. Their last (17th) digit may differ from fpc's,
+  as fpc's own results differ between processors.
 * Infinite recursion ends with error 202 (stack overflow) instead of a
   crash.
 * `pasc` is an interpreter, so it is much slower than native code (a few

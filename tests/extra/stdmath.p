@@ -16,7 +16,7 @@ begin
 	writeln(odd(3), ' ', odd(-3), ' ', odd(4), ' ', odd(0));
 	writeln(pi:0:5, ' ', pi * 2:10:3);
 	x := 2;
-	writeln(cos(x), ' ', arctan(x), ' ', exp(x), ' ', ln(x), ' ', frac(x / 3), ' ', int(x * 1.6));
+	writeln(cos(x), ' ', arctan(x):0:12, ' ', exp(x), ' ', ln(x), ' ', frac(x / 3), ' ', int(x * 1.6));
 	i := 7;
 	writeln(odd(i), ' ', exp(i):0:4);
 	for i := 1 to 10 do begin
