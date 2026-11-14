@@ -1,0 +1,4 @@
+{
+ "compile": "err_random.p(5,20) Error: Incompatible type for arg no. 1: Got \"Single\", expected \"Int64\"",
+ "sha1": "2d0c0363e564a968132cccde3e9bebca109c4aff"
+}

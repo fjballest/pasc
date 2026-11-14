@@ -16,6 +16,7 @@ import os
 import random
 import struct
 import sys
+import time
 
 from . import code as C
 from .errors import RunError, Halt, RTE_NAMES, EXCEPTIONS
@@ -32,6 +33,36 @@ SIZES = {k: s.size for k, s in STRUCTS.items()}
 DEFAULT_STACK = 16 << 20
 EOL = b'\r\n' if os.name == 'nt' else b'\n'	# FPC's LineEnding
 DEBUG = bool(os.environ.get('PASC_DEBUG'))
+
+
+class MT19937:
+	"""The Mersenne twister of FPC's system unit (rtl/inc/system.inc), so
+	random gives the same numbers as with fpc."""
+	def __init__(self, seed):
+		self.seed(seed)
+
+	def seed(self, seed):
+		mt = [seed & 0xffffffff]
+		for i in range(1, 624):
+			p = mt[-1]
+			mt.append((1812433253 * (p ^ (p >> 30)) + i) & 0xffffffff)
+		self.mt = mt
+		self.i = 624
+
+	def next(self):
+		mt = self.mt
+		if self.i >= 624:
+			for k in range(624):
+				y = (mt[k] & 0x80000000) | (mt[(k + 1) % 624] & 0x7fffffff)
+				mt[k] = mt[(k + 397) % 624] ^ (y >> 1) ^ (0x9908b0df if y & 1 else 0)
+			self.i = 0
+		y = mt[self.i]
+		self.i += 1
+		y ^= y >> 11
+		y ^= (y << 7) & 0x9d2c5680
+		y ^= (y << 15) & 0xefc60000
+		y ^= y >> 18
+		return y
 
 
 class VM:
@@ -63,6 +94,7 @@ class VM:
 		self.pc = 0
 		self.hook = None		# called on LINE instructions (pascdb)
 		self.heap_types = {}		# address -> type of the block (pascdb)
+		self.rand = MT19937(0)		# random(): fpc's generator, randseed 0
 
 	# files
 	def file(self, addr):
@@ -575,7 +607,9 @@ class VM:
 		elif op == C.RDLN:
 			self.file(pop()).readln()
 		elif op == C.SYS:
-			if a == 'stack':
+			if a == 'randomize':
+				self.rand.seed(int(time.time() * 1000) & 0x7fffffff)
+			elif a == 'stack':
 				debug.dump_stack(self, pc, fp, max(0, stack.pop()))
 			else:
 				self.pc = pc
@@ -610,6 +644,54 @@ class VM:
 			if x - x != 0.0:
 				raise RunError(207)
 			stack[-1] = math.sin(x)
+		elif name == 'cos':
+			if x - x != 0.0:
+				raise RunError(207)
+			stack[-1] = math.cos(x)
+		elif name == 'arctan':
+			if x != x:
+				raise RunError(207)
+			stack[-1] = math.atan(x)
+		elif name == 'exp':
+			if x != x:
+				raise RunError(207)
+			try:
+				stack[-1] = math.exp(x)
+			except OverflowError:
+				raise RunError(205)
+		elif name == 'ln':
+			if x < 0.0 or x != x:
+				raise RunError(207)
+			if x == 0.0:
+				raise RunError(200)
+			if x == math.inf:
+				raise RunError(205)
+			stack[-1] = math.log(x)
+		elif name == 'frac':
+			if x - x != 0.0:
+				raise RunError(207)
+			stack[-1] = math.fmod(x, 1.0)
+		elif name == 'int':
+			if x - x != 0.0:
+				raise RunError(207)
+			stack[-1] = float(math.trunc(x))
+		elif name == 'random':
+			stack.append(self.rand.next() * (1.0 / 4294967296.0))
+		elif name == 'randomn':
+			# fpc: longint((int64(cardinal(genrand)) * l) shr 32)
+			if x < 0:
+				x += 1
+			v = ((self.rand.next() * x) & 0xffffffffffffffff) >> 32
+			v &= 0xffffffff
+			stack[-1] = v - (1 << 32) if v >= 1 << 31 else v
+		elif name == 'random64':
+			lo = self.rand.next()
+			v = (lo | (self.rand.next() << 32)) & 0x7fffffffffffffff
+			if x == 0:
+				stack[-1] = 0
+			else:
+				q = abs(v) // abs(x)		# mod truncates, as in Pascal
+				stack[-1] = v - x * (q if x > 0 else -q)
 		elif name == 'trunc' or name == 'round':
 			if x - x != 0.0 or abs(x) >= 9.223372036854775807e18:
 				raise RunError(207)

@@ -249,8 +249,10 @@ pasc implements only what the course programs use:
 * Operators: `+ - * / div mod and or xor not shl shr = <> < > <= >= @ ^`.
   With `uses math` you also get `**` and `mod` on reals.
 * Routines: `write writeln read readln eof eoln assign reset rewrite
-  close halt ord chr succ pred low high length setlength val sqr sqrt abs
-  sin trunc round new dispose stack`, `input`, `output`, and `intpower` from
+  close halt ord chr succ pred low high length setlength val new dispose
+  stack`, `input`, `output`; the standard math functions `abs sqr sqrt sin
+  cos arctan exp ln frac int trunc round odd pi random randomize` (`random`
+  gives the same numbers as fpc's for the same seed); and `intpower` from
   `math`.
 
 Anything else is a compile error, even where fpc would accept it. That

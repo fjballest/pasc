@@ -87,6 +87,13 @@ course:
   glob.p:4:2: error: global variables must be declared after all procedures and functions, just before the main program (pasc -g allows them earlier)
   ```
 
+The standard functions of Pascal are available: `abs`, `sqr`, `sqrt`,
+`sin`, `cos`, `arctan`, `exp`, `ln`, `frac`, `int`, `trunc`, `round`,
+`odd`, `pi`, `random` (with no argument, a real in [0, 1); `random(n)`,
+an integer in [0, n)) and `randomize`. Without `randomize`, `random`
+gives the same numbers on every run, the same ones fpc gives. With `uses
+math` you also get `intpower`, `**` and `mod` on reals.
+
 pasc also rejects everything outside the course's subset of the language
 (sets, dynamic arrays, nested procedures, `with`, `exit`, `break`, `inc`,
 ...), with a message saying it is not supported.

@@ -184,7 +184,8 @@ class Compiler:
 			s[name] = c
 		for name in ('write writeln read readln eof eoln assign reset rewrite close '
 				'halt ord chr succ pred low high length setlength val sqr sqrt abs '
-				'sin trunc round new dispose stack').split():
+				'sin cos arctan exp ln frac int odd pi random randomize '
+				'trunc round new dispose stack').split():
 			s[name] = Sym('builtin', name)
 		# standard text files live at fixed global addresses (see vm.py)
 		for name, addr in (('output', 16), ('input', 24)):
@@ -1433,7 +1434,7 @@ class Compiler:
 					op.append((C.SGL, None, line))
 				return Ex(t, None, x.vcode + op)
 			self.error('Type mismatch', args[0])
-		if name in ('sqrt', 'sin'):
+		if name in ('sqrt', 'sin', 'cos', 'arctan', 'exp', 'ln', 'frac', 'int'):
 			nargs(1)
 			x = arg(0)
 			if not (x.type.is_int or x.type.is_real) or x.istype:
@@ -1442,9 +1443,11 @@ class Compiler:
 				v = float(x.const)
 				if name == 'sqrt':
 					v = math.sqrt(v) if v >= 0 else math.nan
-				else:
-					v = math.sin(v) if math.isfinite(v) else math.nan
-				return Ex(T.REAL, v)
+					return Ex(T.REAL, v)
+				if name == 'sin':
+					return Ex(T.REAL, math.sin(v) if math.isfinite(v) else math.nan)
+				# like fpc, folding gives Inf or NaN where the run time fails
+				return Ex(T.REAL, real_fn(name, v))
 			code = x.vcode + ([(C.I2F, None, line)] if x.type.is_int else []) + [(C.FN, name, line)]
 			if name == 'sqrt' and x.type.is_real and x.type.single:
 				return Ex(T.SINGLE, None, code + [(C.SGL, None, line)])
@@ -1465,6 +1468,30 @@ class Compiler:
 					self.error('Overflow in arithmetic operation', e)
 				return Ex(T.INT64, int(v) if name == 'trunc' else fpc_round(v))
 			return Ex(T.INT64, None, x.vcode + [(C.FN, name, line)])
+		if name == 'odd':
+			nargs(1)
+			x = arg(0)
+			if not x.type.is_int or x.istype:
+				self.error('Type mismatch', args[0])
+			if x.const is not None:
+				return Ex(T.BOOLEAN, x.const & 1)
+			return Ex(T.BOOLEAN, None, x.vcode + [(C.PUSH, 1, line), (C.AND, None, line)])
+		if name == 'pi':
+			nargs(0)
+			return Ex(T.REAL, math.pi)
+		if name == 'random':
+			nargs(0, 1)
+			if n == 0:
+				return Ex(T.REAL, None, [(C.FN, 'random', line)])
+			x = arg(0)
+			if not x.type.is_int or x.istype:
+				self.error('Type mismatch', args[0])
+			t = T.INT64 if x.type.size == 8 else T.INTEGER
+			code = self.coerce(x, t, args[0])
+			return Ex(t, None, code + [(C.FN, 'random64' if t is T.INT64 else 'randomn', line)])
+		if name == 'randomize':
+			nargs(0)
+			return proc([(C.SYS, 'randomize', line)])
 		if name == 'intpower':
 			nargs(2)
 			x = arg(0)
@@ -1884,6 +1911,31 @@ class Compiler:
 		prog.warnings = self.warnings
 		prog.uses_math = self.uses_math
 		prog.init_ranges.append((16, 16))
+
+
+def real_fn(name, v):
+	"""cos, arctan, exp, ln, frac or int of constant v, as fpc folds them:
+	Inf or NaN where the operation fails at run time."""
+	if name == 'ln':
+		if v != v or v < 0:
+			return math.nan
+		return -math.inf if v == 0 else (math.inf if v == math.inf else math.log(v))
+	if name == 'exp':
+		if v != v:
+			return v
+		try:
+			return math.exp(v)
+		except OverflowError:
+			return math.inf
+	if name == 'arctan':
+		return math.atan(v)
+	if not math.isfinite(v):
+		return math.nan
+	if name == 'cos':
+		return math.cos(v)
+	if name == 'frac':
+		return math.fmod(v, 1.0)
+	return float(math.trunc(v))		# int
 
 
 def is_halt(st):
