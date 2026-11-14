@@ -533,7 +533,8 @@ Algunas cosas que conviene saber:
 - **Para depurar**, puedes escribir `stack();` en cualquier punto del
   programa: pasc mostrará los procedimientos y funciones en curso con el
   valor de sus parámetros y variables locales, además de las variables
-  globales.
+  globales. `stack(1)`, `stack(2)`... muestran cada vez más detalle: los
+  registros y arrays campo a campo, con sangrado, y siguen los punteros.
 - **Memoria dinámica.** Al terminar, pasc avisa de la memoria reservada con
   `new` que no se ha liberado con `dispose`.
 - **Datos de entrada desde un archivo.** Para que el programa lea de un

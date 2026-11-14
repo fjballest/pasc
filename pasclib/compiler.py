@@ -1280,8 +1280,9 @@ class Compiler:
 			size = x.type.target.size
 			return proc(x.acode + [(C.SYS, (name, size, x.type.target, line), line)])
 		if name == 'stack':
-			nargs(0)
-			return proc([(C.SYS, 'stack', line)])
+			nargs(0, 1)
+			code = self.coerce(arg(0), T.INTEGER, args[0]) if n else [(C.PUSH, 0, line)]
+			return proc(code + [(C.SYS, 'stack', line)])
 		if name == 'ord':
 			nargs(1)
 			x = arg(0)

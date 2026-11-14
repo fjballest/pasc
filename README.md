@@ -73,7 +73,10 @@ These deliberately go beyond (or against) fpc, to help students learn:
   function with its parameters (and what `var` parameters refer to), its
   locals and its result, then the global variables and the heap in use.
   It shows records, arrays, strings, enumerations and pointers by value,
-  and marks garbage values.
+  and marks garbage values. `stack(1)`, `stack(2)`, ... print more: one
+  line per field or array element, indented, with structures nested one
+  level deeper, pointers followed one more step and more array elements
+  for each level. `stack()` is `stack(0)`.
 * **Functions must not do input/output.** Using `read`, `eof`, files,
   etc. in a function, or calling a procedure that does, is a compile
   error. `write` and `writeln` (directly or through a procedure that only

@@ -543,7 +543,7 @@ class VM:
 			self.file(pop()).readln()
 		elif op == C.SYS:
 			if a == 'stack':
-				debug.dump_stack(self, pc, fp)
+				debug.dump_stack(self, pc, fp, max(0, stack.pop()))
 			else:
 				self.sys(a, stack)
 		elif op == C.HALT:

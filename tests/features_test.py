@@ -28,6 +28,11 @@ for s in ['--- stack() at stack1.p:27 ---', 'procedure muestra, line 27',
 		'1 x TipoRNodo (12 bytes) allocated at stack1.p:51']:
 	check('stack/leaks: ' + s, s in err)
 check('stack1 output', out == '7\n' and st == 0)
+out, err, st = run('-z', 'stack2.p')
+for s in ['--- stack(2) at stack2.p:27 ---', '      p: TipoPunto = (  {parameter}', '          x: 3',
+		'          c: Verde', '      lista: TipoNodo = ^heap@', '          sig: ^heap@', '              v: 20',
+		'              sig: nil', '          [16] = 256', '          ... 4 more']:
+	check('stack(2): ' + s, s in err)
 a = run('--seed', '5', 'garbage.p')[0]
 b = run('--seed', '5', 'garbage.p')[0]
 c = run('--seed', '6', 'garbage.p')[0]

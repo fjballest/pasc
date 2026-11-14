@@ -135,7 +135,68 @@ class Formatter:
 		return '      %s  {%s}' % (text, label)
 
 
-def dump_stack(vm, pc, fp, out=None):
+class Pretty:
+	"""stack(level) for level >= 1: one line per field or element, indented.
+	Structures nest up to level + 1 deep, pointers are followed level times
+	and arrays show up to 8 * level elements."""
+
+	def __init__(self, f, level):
+		self.f = f
+		self.level = level
+		self.maxdepth = level + 1
+		self.maxelems = 8 * level
+
+	def lines(self, prefix, t, addr, ind, depth=0, ptrs=0, seen=None):
+		"""Lines showing 'prefix' followed by the value of type t at addr."""
+		f = self.f
+		pad = '      ' + '    ' * ind
+		seen = seen or set()
+		if addr is None or addr < 0 or addr + t.size > len(f.mem):
+			return [pad + prefix + '<invalid address>']
+		if t.is_record and depth < self.maxdepth:
+			out = [pad + prefix + '(']
+			for key, (off, ft, spelling) in t.fields.items():
+				out += self.lines(spelling + ': ', ft, addr + off, ind + 1, depth + 1, ptrs, seen)
+			return out + [pad + ')']
+		if t.is_array and not t.is_chararray() and depth < self.maxdepth:
+			out = [pad + prefix + '[']
+			n = min(t.count, self.maxelems)
+			for i in range(n):
+				idx = t.lo + i
+				if t.index.is_char:
+					label = char_repr(idx)
+				elif t.index.is_enum:
+					label = t.index.names[idx]
+				elif t.index.is_bool:
+					label = ('FALSE', 'TRUE')[idx]
+				else:
+					label = str(idx)
+				out += self.lines('[%s] = ' % label, t.elem, addr + i * t.elem.size, ind + 1, depth + 1, ptrs, seen)
+			if t.count > n:
+				out.append(pad + '    ... %d more' % (t.count - n))
+			return out + [pad + ']']
+		if t.is_pointer and t.target is not None:
+			p = struct.unpack_from('<Q', f.mem, addr)[0]
+			vm = f.vm
+			if p in vm.heap_live and ptrs < self.level:
+				if p in seen:
+					return [pad + prefix + '^heap@%d (already shown above)' % p]
+				return self.lines(prefix + '^heap@%d -> ' % p, t.target, p, ind, depth, ptrs + 1, seen | {p})
+		text = pad + prefix + f.value(t, addr, depth)
+		if len(text) > MAXLINE + len(pad):
+			text = text[:MAXLINE + len(pad) - 3] + '...'
+		return [text]
+
+	def var(self, name, kind, t, addr):
+		label = {'param': 'parameter', 'local': 'local', 'result': 'function result',
+			'var param': 'var parameter', 'global': 'global'}.get(kind, kind)
+		out = self.lines('%s: %s = ' % (name, tname(t)), t, addr, 0)
+		if kind != 'global':
+			out[0] += '  {%s}' % label
+		return out
+
+
+def dump_stack(vm, pc, fp, level=0, out=None):
 	out = out or sys.stderr
 	vm.flush_all()
 	prog = vm.prog
@@ -143,7 +204,8 @@ def dump_stack(vm, pc, fp, out=None):
 	frames = [(vm.cur_routine, fp, pc - 1)]
 	for (rpc, rfp, rsp, r) in reversed(vm.callstack):
 		frames.append((r, rfp, rpc - 1))
-	lines = ['--- stack() at %s ---' % vm.where(pc - 1)]
+	pretty = Pretty(f, level) if level > 0 else None
+	lines = ['--- stack(%d) at %s ---' % (level, vm.where(pc - 1)) if level else '--- stack() at %s ---' % vm.where(pc - 1)]
 	shown = frames if len(frames) <= 12 else frames[:8] + [None] + frames[-3:]
 	for fr in shown:
 		if fr is None:
@@ -163,11 +225,17 @@ def dump_stack(vm, pc, fp, out=None):
 					addr = None
 			else:
 				addr = rfp + off
-			lines.append(f.var_line(name, kind, t, addr))
+			if pretty:
+				lines += pretty.var(name, kind, t, addr)
+			else:
+				lines.append(f.var_line(name, kind, t, addr))
 	if prog.globals:
 		lines.append('   global variables')
 		for name, addr, t in prog.globals:
-			lines.append(f.var_line(name, 'global', t, addr).replace('  {global}', ''))
+			if pretty:
+				lines += pretty.var(name, 'global', t, addr)
+			else:
+				lines.append(f.var_line(name, 'global', t, addr).replace('  {global}', ''))
 	n = len(vm.heap_live)
 	lines.append('   heap: %d block%s in use (%d bytes)' % (n, '' if n == 1 else 's',
 		sum(sz for sz, _ in vm.heap_live.values())))
