@@ -1,0 +1,151 @@
+# Build standalone pasc installers (no Python needed) for Windows, macOS
+# and Linux.  Push a tag like v1.1 to publish them as a GitHub release;
+# running the workflow by hand only builds them (see the run's artifacts).
+name: installers
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYINSTALLER: pyinstaller==5.13.2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: tests (cached fpc results)
+        run: |
+          python3 tests/difftest.py
+          python3 tests/lint_test.py
+          python3 tests/features_test.py
+
+  windows:
+    needs: test
+    # Python 3.8 is the last one that runs on Windows 7 and 8
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: version
+        shell: bash
+        run: echo "VERSION=$(python -c 'import pasclib; print(pasclib.VERSION)')" >> $GITHUB_ENV
+      - name: build
+        run: |
+          python -m pip install ${{ env.PYINSTALLER }}
+          pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py
+          dist\pasc\pasc.exe --version
+          dist\pasc\pasc.exe packaging\smoke.p
+      - name: installer
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DVersion=${{ env.VERSION }} packaging\windows\pasc.iss
+          Compress-Archive -Path dist\pasc\* -DestinationPath dist\pasc-${{ env.VERSION }}-windows-portable.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/pasc-*-windows-setup.exe
+            dist/pasc-*-windows-portable.zip
+
+  macos:
+    needs: test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      # python.org builds are universal2 and run on macOS 10.9 and later
+      - name: python (universal2)
+        run: |
+          curl -sSLo python.pkg https://www.python.org/ftp/python/3.11.9/python-3.11.9-macos11.pkg
+          sudo installer -pkg python.pkg -target /
+          echo "PY=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3" >> $GITHUB_ENV
+      - name: version
+        run: echo "VERSION=$($PY -c 'import pasclib; print(pasclib.VERSION)')" >> $GITHUB_ENV
+      - name: build
+        run: |
+          $PY -m pip install ${{ env.PYINSTALLER }}
+          $PY -m PyInstaller --noconfirm --onedir --console --target-arch universal2 --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py
+          lipo -info dist/pasc/pasc
+          dist/pasc/pasc --version
+          dist/pasc/pasc packaging/smoke.p
+      - name: installer
+        run: |
+          packaging/macos/build-pkg.sh $VERSION
+          (cd dist && zip -qry pasc-$VERSION-macos-portable.zip pasc)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            dist/pasc-*-macos.pkg
+            dist/pasc-*-macos-portable.zip
+
+  linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # build on an old glibc (Debian 9, 2.24) so it runs on old and new distros
+      - name: build
+        run: |
+          docker run --rm -v "$PWD":/w -w /w python:3.7-stretch sh -c '
+            pip install -q ${{ env.PYINSTALLER }} &&
+            pyinstaller --noconfirm --onedir --console --name pasc --hidden-import pasclib.lint --hidden-import pasclib.debug pasc.py &&
+            dist/pasc/pasc --version && dist/pasc/pasc packaging/smoke.p &&
+            chown -R '"$(id -u):$(id -g)"' dist build'
+          echo "VERSION=$(python3 -c 'import pasclib; print(pasclib.VERSION)')" >> $GITHUB_ENV
+      - name: package
+        run: |
+          d=pasc-$VERSION-linux-x86_64
+          mkdir -p dist/$d
+          cp -R dist/pasc dist/$d/pasc
+          cp packaging/linux/install.sh README.md dist/$d/
+          tar -C dist -czf dist/$d.tar.gz $d
+          # also check it on a current distro
+          docker run --rm -v "$PWD/dist":/d ubuntu:24.04 sh -c "cd /d/$d && ./install.sh && /root/.local/bin/pasc --version"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/pasc-*-linux-x86_64.tar.gz
+
+  source:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: zip
+        run: |
+          v=$(python3 -c 'import pasclib; print(pasclib.VERSION)')
+          git archive --format=zip --prefix=pasc-$v/ -o pasc-$v-source.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source
+          path: pasc-*-source.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos, linux, source]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          body: |
+            Installers for pasc. None of them needs Python.
+            * Windows 7 or later: run `pasc-*-windows-setup.exe` (no administrator rights needed), then open a new terminal.
+            * macOS 10.13 or later, Apple silicon or Intel: open `pasc-*-macos.pkg`. If macOS refuses to open it, right-click it and choose Open.
+            * Linux x86_64 (glibc 2.24 or later): unpack `pasc-*-linux-x86_64.tar.gz` and run `./install.sh`.
+            * Anywhere with Python 3.7 or later: unzip `pasc-*-source.zip` and run `python3 pasc.py prog.p`.

@@ -24,6 +24,7 @@ from pasclib.errors import CompileError			# noqa: E402
 from pasclib.parser import parse				# noqa: E402
 from pasclib.compiler import compile_program		# noqa: E402
 from pasclib import vm					# noqa: E402
+from pasclib import VERSION				# noqa: E402
 
 
 def usage():
@@ -33,7 +34,8 @@ def usage():
 		'  -w          also report style warnings (limits in pasclib/limits.py)\n'
 		'  -z          uninitialised memory is zero instead of random\n'
 		'  --seed N    seed for the random contents of uninitialised memory\n'
-		'  --stack MB  stack size in megabytes (default %d)\n' % (vm.DEFAULT_STACK >> 20))
+		'  --stack MB  stack size in megabytes (default %d)\n'
+		'  --version   print the version\n' % (vm.DEFAULT_STACK >> 20))
 	sys.exit(2)
 
 
@@ -68,6 +70,9 @@ def main(argv):
 	i = 0
 	while i < len(argv):
 		a = argv[i]
+		if a in ('--version', '-v'):
+			print('pasc ' + VERSION)
+			return 0
 		if a == '-c':
 			only_check = True
 		elif a == '-S':
