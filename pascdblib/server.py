@@ -71,6 +71,7 @@ class Session:
 			self.waiting_input = False
 			self.restart_req = False
 			self.lastpos = None
+			self.highwater = 0
 			self.vm = pvm.VM(self.prog)
 			vm = self.vm
 			vm.out.out = Sink(self, 'out')
@@ -121,7 +122,7 @@ class Session:
 				return
 			self.status = 'finished'
 			self.exitcode = code
-			self.snap = final_snapshot(vm, self.lastpos)
+			self.snap = final_snapshot(vm, self.lastpos, self.highwater)
 			self.version += 1
 			self.cv.notify_all()
 
@@ -137,6 +138,7 @@ class Session:
 				self.mode = 'pause'
 			self.paused = (pc, fp, sp, pos)
 			self.lastpos = pos
+			self.highwater = max(self.highwater, sp)
 			self.snap = None
 			self.status = 'paused'
 			self.version += 1
@@ -231,7 +233,7 @@ class Session:
 			}
 			if self.paused is not None:
 				if self.snap is None:
-					self.snap = snapshot(self.vm, *self.paused)
+					self.snap = snapshot(self.vm, *self.paused, highwater=self.highwater)
 				st['snap'] = self.snap
 			elif self.status == 'finished' and self.snap is not None:
 				st['snap'] = self.snap

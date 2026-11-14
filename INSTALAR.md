@@ -566,7 +566,8 @@ navegador la dirección que aparece en el terminal). En ella ves:
 - **Pila**: la pila tal y como está en memoria, con las direcciones de
   retorno de cada llamada;
 - **Memoria**: toda la memoria en uso, byte a byte, con el nombre de cada
-  variable;
+  variable. Lo que está por encima del puntero de pila (`sp ▶`) aparece
+  atenuado: ya no se usa, pero sigue ahí;
 - la salida del programa y una línea para escribir su entrada.
 
 En cada paso se resalta lo que ha cambiado (en Datos, Pila y Memoria) y

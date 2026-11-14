@@ -133,6 +133,10 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 #hex .own0 { background: rgba(31, 95, 191, 0.07); }
 #hex .own1 { background: rgba(46, 125, 50, 0.08); }
 #hex .nm { color: var(--accent); }
+#hex .old { opacity: 0.45; }
+#hex .spm { color: var(--bad); font-weight: 600; }
+.refchip { display: inline-block; border: 1px dashed var(--accent); color: var(--accent); border-radius: 4px;
+	padding: 0 5px; font: 12px var(--mono); cursor: help; }
 #memlist .regions div.item { cursor: pointer; padding: 1px 4px; border-radius: 3px; font: 12px var(--mono); }
 #memlist .regions div.item:hover, #memlist .regions div.item.on { background: var(--cur); }
 #memlist .regions h4 { margin: 8px 0 2px; font-size: 12px; color: var(--muted); }
@@ -281,6 +285,11 @@ function scrollToChange(pane) {
 
 /* graphic data */
 function valueNode(v, path, depth) {
+	const n = valueNode1(v, path, depth);
+	if (v && v.a != null) n.dataset.addr = v.a + ':' + v.t;
+	return n;
+}
+function valueNode1(v, path, depth) {
 	if (!v) return el('span', 'sc', '?');
 	if (v.k === 'scalar' || v.k === 'bad') {
 		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
@@ -326,6 +335,19 @@ function valueNode(v, path, depth) {
 }
 function varNode(x, path) {
 	const row = el('div', 'var');
+	if (x.ref && x.kind === 'var param') {
+		/* a var parameter is not a copy: it refers to the argument */
+		const nm = el('span', 'nm', x.n);
+		const lab = el('div');
+		lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), el('span', 'kd', 'parámetro var'));
+		const chip = el('span', 'refchip', '→ ' + x.target);
+		chip.title = 'Es el propio argumento ' + x.target + (x.targetwhere ? ' (' + x.targetwhere + ')' : '') +
+			', no una copia. Ahora vale ' + (x.v.v != null ? x.v.v : '(' + x.v.t + ')');
+		chip.dataset.refto = x.v.a + ':' + x.v.t;
+		nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n + ' → ' + x.target });
+		row.append(lab, chip);
+		return row;
+	}
 	const nm = el('span', 'nm', x.n);
 	nm.title = 'Ver en memoria (' + hex(x.v.a) + ', ' + x.v.s + ' bytes)';
 	nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n });
@@ -388,10 +410,27 @@ function orderHeap(s) {
 }
 function drawArrows() {
 	const svg = $('#arrows'), cols = $('#datacols');
-	svg.innerHTML = '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ptr)"/></marker></defs>';
+	svg.innerHTML = '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ptr)"/></marker><marker id="ahr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker></defs>';
 	const base = cols.getBoundingClientRect();
 	svg.setAttribute('width', cols.scrollWidth);
 	svg.setAttribute('height', cols.scrollHeight);
+	document.querySelectorAll('#datacols .refchip[data-refto]').forEach(c => {
+		if (!c.offsetParent) return;
+		const t = [...document.querySelectorAll('#datacols [data-addr="' + c.dataset.refto + '"]')].find(e => e.offsetParent);
+		if (!t) return;
+		const a = c.getBoundingClientRect(), b = t.getBoundingClientRect();
+		const x1 = a.right - base.left, y1 = a.top + a.height / 2 - base.top;
+		const x2 = b.right - base.left + 3, y2 = b.top + Math.min(b.height / 2, 10) - base.top;
+		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		const dx = 40 + Math.abs(y2 - y1) / 8;
+		path.setAttribute('d', `M${x1},${y1} C${x1 + dx},${y1} ${x2 + dx},${y2} ${x2},${y2}`);
+		path.setAttribute('fill', 'none');
+		path.setAttribute('stroke', 'var(--accent)');
+		path.setAttribute('stroke-width', '1.3');
+		path.setAttribute('stroke-dasharray', '4 3');
+		path.setAttribute('marker-end', 'url(#ahr)');
+		svg.append(path);
+	});
 	document.querySelectorAll('#datacols .ptr[data-to]').forEach(p => {
 		if (!p.offsetParent) return;	/* inside a collapsed box */
 		const t = document.getElementById('heap-' + p.dataset.to);
@@ -452,8 +491,11 @@ function renderStack() {
    stack, then the heap); only the rows on screen are drawn */
 const ROWH = 18, CHUNK = 4096;
 let memItems = [], memSegs = [], memRows = 0, chunks = new Map(), chunkVer = -1;
+let memSp = 0, memStack = 0;
 function memLayout(s) {
 	const r = s.regions || {}, segs = [];
+	memSp = r.sp || 0;
+	memStack = r.stack ? r.stack[0] : 0;
 	if (r.used) segs.push({ a: r.used[0] - (r.used[0] % 16), b: r.used[1] });
 	if (r.heap && r.heap[1] > r.heap[0]) segs.push({ gap: r.heap[0] - (r.used ? r.used[1] : 0) }, { a: r.heap[0] - (r.heap[0] % 16), b: r.heap[1] });
 	let n = 0;
@@ -504,8 +546,15 @@ function drawDump() {
 			continue;
 		}
 		const base = r.g.a + r.i * 16;
-		line.append(el('span', 'ad', hex(base).padStart(10, ' ') + '  '));
-		let ascii = '', label = '';
+		const spRow = memSp >= base && memSp < base + 16;
+		if (spRow) {
+			const m = el('span', 'spm', 'sp ▶');
+			m.title = 'Puntero de pila: lo que hay después ya no se usa, pero los bytes siguen ahí';
+			line.append(m, el('span', 'ad', hex(base).padStart(6, ' ') + '  '));
+		} else {
+			line.append(el('span', 'ad', hex(base).padStart(10, ' ') + '  '));
+		}
+		let ascii = '', label = '', spHere = false;
 		for (let k = 0; k < 16; k++) {
 			const a = base + k;
 			if (a >= r.g.b) { line.append(el('span', 'b', '   ')); continue; }
@@ -515,6 +564,8 @@ function drawDump() {
 			let cls = 'b';
 			if (o >= 0) { cls += ' own' + (o % 2); if (memItems[o].a === a) label += (label ? ', ' : '') + memItems[o].n; }
 			if (inRanges(a, sel)) cls += ' on';
+			if (memSp && a >= memSp && a >= memStack) cls += ' old';
+			if (a === memSp) spHere = true;
 			if (inRanges(a, changedRanges)) cls += ' chg';
 			const b = el('span', cls, by + ' ');
 			if (o >= 0) b.title = memItems[o].n + ' (' + hex(memItems[o].a) + ', ' + memItems[o].s + ' bytes)';
@@ -523,6 +574,7 @@ function drawDump() {
 			ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
 		}
 		line.append(el('span', 'ad', ' ' + ascii.padEnd(16, ' ') + ' '), el('span', 'nm', label));
+		if (spHere) line.append(el('span', 'spm', '  ◀ puntero de pila (sp)'));
 		h.append(line);
 	}
 }
@@ -553,7 +605,8 @@ function renderMem() {
 	memItems = items.slice().sort((a, b) => a.a - b.a);
 	memLayout(s);
 	$('#memttl').textContent = 'Toda la memoria en uso: variables globales y pila, y después la memoria dinámica. ' +
-		'Lo resaltado en naranja ha cambiado en el último paso.';
+		'Lo resaltado en naranja ha cambiado en el último paso. Lo atenuado está por encima del puntero de pila (sp): ' +
+		'ya no se usa, pero sus bytes siguen ahí.';
 	if (memFollow && changedRanges.length) {
 		memFollow = false;
 		requestAnimationFrame(() => { drawDump(); memScrollTo(changedRanges[0][0]); drawDump(); });

@@ -106,7 +106,34 @@ def where_line(prog, pc):
 	return prog.lines[pc] if 0 <= pc < len(prog.lines) else 0
 
 
-def snapshot(vm, pc, fp, sp, pos):
+def label_index(frames, globs, heap):
+	"""(address, type) -> a readable name for every variable, field and
+	element, to say what a var parameter refers to."""
+	idx = {}
+
+	def walk(v, name, where):
+		if not v or 'a' not in v:
+			return
+		idx.setdefault((v['a'], v['t']), (name, where))
+		if v.get('k') == 'record':
+			for f in v['f']:
+				walk(f['v'], '%s.%s' % (name, f['n']), where)
+		elif v.get('k') == 'array':
+			for it in v['items']:
+				walk(it['v'], '%s[%s]' % (name, it['i']), where)
+
+	for x in globs:
+		walk(x['v'], x['n'], 'variable global')
+	for f in reversed(frames):
+		for x in f['vars']:
+			if not x.get('ref'):
+				walk(x['v'], x['n'], f['name'])
+	for h in heap:
+		walk(h['v'], '^%s en 0x%x' % (h['t'], h['a']), 'memoria dinámica')
+	return idx
+
+
+def snapshot(vm, pc, fp, sp, pos, highwater=0):
 	"""Everything the browser shows, with the VM stopped before line:col pos."""
 	prog = vm.prog
 	desc = Describer(vm)
@@ -163,6 +190,22 @@ def snapshot(vm, pc, fp, sp, pos):
 		val = desc.value(t, addr) if t is not None else {'k': 'scalar', 'v': desc.hexbytes(addr, size),
 			'a': addr, 's': size, 't': tn, 'g': False}
 		heap.append({'a': addr, 's': size, 't': tn, 'line': line, 'v': val})
+	# what each var parameter refers to
+	idx = label_index(frames, globs, heap)
+	for f in frames:
+		for x in f['vars']:
+			if x.get('ref'):
+				v = x['v']
+				name, where = idx.get((v['a'], v['t']), ('0x%x' % v['a'], ''))
+				x['target'] = name
+				x['targetwhere'] = where
+		for sl in f['slots']:
+			if sl['kind'].endswith('(dirección)'):
+				ref = desc.unpack('Q', sl['a'])
+				for x in f['vars']:
+					if x['n'] == sl['n'] and x.get('target'):
+						sl['v'] = '-> %s (0x%x)' % (x['target'], ref)
+	top = fp + cur.framesize
 	return {
 		'line': pos[0], 'col': pos[1],
 		'frames': frames,
@@ -172,14 +215,16 @@ def snapshot(vm, pc, fp, sp, pos):
 		'regions': {
 			'globals': [32, prog.globsize],
 			'stack': [vm.stack, fp + cur.framesize],
-			# the memory in use: globals and stack, then the heap
-			'used': [0, fp + cur.framesize],
+			# the memory in use: globals and stack (as far as it has ever
+			# grown: what is above the stack pointer is still there), then the heap
+			'used': [0, max(top, highwater)],
+			'sp': top,
 			'heap': [vm.stack_end, len(vm.mem)],
 		},
 	}
 
 
-def final_snapshot(vm, pos):
+def final_snapshot(vm, pos, highwater=0):
 	"""What is left when the program has ended: global variables and heap."""
 	prog = vm.prog
 	desc = Describer(vm)
@@ -194,4 +239,5 @@ def final_snapshot(vm, pos):
 	return {'line': pos[0] if pos else 0, 'col': pos[1] if pos else 0, 'frames': [], 'globals': globs,
 		'gslots': [{'a': addr, 's': t.size, 'n': name} for name, addr, t in prog.globals],
 		'heap': heap, 'final': True,
-		'regions': {'used': [0, vm.stack], 'heap': [vm.stack_end, len(vm.mem)]}}
+		'regions': {'used': [0, max(vm.stack, highwater)], 'sp': vm.stack, 'stack': [vm.stack, vm.stack],
+			'heap': [vm.stack_end, len(vm.mem)]}}

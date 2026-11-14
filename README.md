@@ -140,7 +140,8 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
 
 * the source, with the statement about to run highlighted (line and
   column), and breakpoints set by clicking line numbers;
-* **Datos**: the program's data drawn as boxes: one frame per active
+* **Datos**: a `var` parameter is shown as a dashed arrow to the argument
+  it refers to (it is not a copy). The program's data are drawn as boxes: one frame per active
   procedure or function with its parameters, locals and result, the global
   variables, and the blocks allocated with `new`. Records and arrays can
   be collapsed and expanded by clicking their headers, and pointers are
@@ -149,7 +150,9 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
   of every slot, plus each call's return address and saved frame pointer;
 * **Memoria**: one hex dump of all the memory in use (globals and stack,
   then the heap), with each variable's bytes shaded and named; picking a
-  variable, slot or heap block in the list scrolls to it;
+  variable, slot or heap block in the list scrolls to it. The stack is
+  shown as far as it has grown: bytes above the stack pointer (marked
+  `sp ▶`) are dimmed, since they are no longer in use but still there;
 * the program's output, and an input line for what it reads (EOF button
   for end of file).
 
