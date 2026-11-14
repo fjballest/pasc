@@ -50,9 +50,11 @@ def main():
 	text = open(src, encoding='utf-8').read()
 	md = MarkdownIt('commonmark').enable('table').use(anchors_plugin, max_level=3, slug_func=slug)
 	body = md.render(text)
+	m = re.search(r'^#\s+(.+)$', text, re.M)
+	title = m.group(1).strip() if m else os.path.basename(src)
 	html = ('<!doctype html><html lang="es"><head><meta charset="utf-8">'
-		'<title>Cómo instalar y usar pasc</title><style>%s</style></head><body>%s</body></html>'
-		% (CSS, body))
+		'<title>%s</title><style>%s</style></head><body>%s</body></html>'
+		% (title, CSS, body))
 	d = tempfile.mkdtemp()
 	h = os.path.join(d, 'guia.html')
 	open(h, 'w', encoding='utf-8').write(html)

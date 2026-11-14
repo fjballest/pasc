@@ -1,0 +1,14 @@
+#!/bin/sh
+# md2pdf: make a PDF from a Markdown file.
+#	usage: md2pdf file.md [file.pdf]
+# Uses a private Python environment (created once in ~/.cache/md2pdf) with
+# markdown-it-py, and Chrome or Chromium to print (CHROME=path overrides).
+set -e
+[ -n "$1" ] || { echo 'usage: md2pdf file.md [file.pdf]' >&2; exit 2; }
+out=${2:-${1%.*}.pdf}
+env="$HOME/.cache/md2pdf"
+if [ ! -x "$env/bin/python" ]; then
+	python3 -m venv "$env"
+	"$env/bin/pip" -q install markdown-it-py mdit-py-plugins
+fi
+exec "$env/bin/python" "$(dirname "$0")/build-pdf.py" "$1" "$out"
