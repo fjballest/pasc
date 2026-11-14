@@ -120,8 +120,19 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 #bye { position: fixed; inset: 0; background: var(--bg); display: none; align-items: center; justify-content: center;
 	flex-direction: column; gap: 8px; font-size: 18px; z-index: 10; }
 #bye.on { display: flex; }
-#memlist { display: flex; gap: 16px; align-items: flex-start; }
-#memlist .regions { min-width: 230px; }
+#mem.on { display: flex; flex-direction: column; overflow: hidden; }
+#right.all #mem { display: flex; flex-direction: column; overflow: hidden; }
+#memlist { display: flex; gap: 12px; align-items: stretch; flex: 1; min-height: 0; }
+#memlist .regions { min-width: 210px; max-width: 260px; overflow: auto; }
+#dumpcol { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#hexwrap { flex: 1; overflow: auto; position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+#hexspace { position: relative; }
+#hex { position: absolute; left: 0; top: 0; right: 0; }
+#hex > div { height: 18px; line-height: 18px; padding-left: 6px; }
+#hex .sep { color: var(--muted); font-style: italic; background: var(--chip); }
+#hex .own0 { background: rgba(31, 95, 191, 0.07); }
+#hex .own1 { background: rgba(46, 125, 50, 0.08); }
+#hex .nm { color: var(--accent); }
 #memlist .regions div.item { cursor: pointer; padding: 1px 4px; border-radius: 3px; font: 12px var(--mono); }
 #memlist .regions div.item:hover, #memlist .regions div.item.on { background: var(--cur); }
 #memlist .regions h4 { margin: 8px 0 2px; font-size: 12px; color: var(--muted); }
@@ -163,7 +174,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 		<div class="panes">
 		<div id="data" class="pane on"><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
-		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div><div id="memttl" class="help"></div><div id="hex"></div></div></div></div>
+		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div></div></div>
 		</div>
 	</section>
 </main>
@@ -214,7 +225,7 @@ function markSource() {
 }
 
 /* what changed since the previous step */
-let memFollow = false;
+let memFollow = false, changedRanges = [];
 let changed = new Set(), newHeap = new Set(), changedSlots = new Set(), prevBytes = new Map(), oldBytes = new Map();
 const leafKey = v => v.a + ':' + v.t;
 const leafText = v => v.k === 'ptr' ? 'p' + v.p : v.v;
@@ -247,6 +258,15 @@ function diff(prev, cur) {
 	cur.heap.forEach(h => { if (!ph.has(h.a)) newHeap.add(h.a); });
 	const sa = slotsOf(prev), sb = slotsOf(cur);
 	for (const [k, h] of sb) if (sa.has(k) && sa.get(k) !== h) changedSlots.add(k);
+	/* byte ranges that changed, for the memory dump */
+	changedRanges = [];
+	const sizes = new Map();
+	const walk = v => { if (!v) return; if (v.k === 'record') v.f.forEach(f => walk(f.v)); else if (v.k === 'array') v.items.forEach(it => walk(it.v)); else sizes.set(leafKey(v), v.s); };
+	cur.globals.forEach(x => walk(x.v)); cur.frames.forEach(f => f.vars.forEach(x => walk(x.v))); cur.heap.forEach(h => walk(h.v));
+	for (const k of changed) changedRanges.push([parseInt(k), sizes.get(k) || 1]);
+	cur.frames.forEach(f => f.slots.forEach(sl => { if (changedSlots.has(sl.a + ':' + sl.n)) changedRanges.push([sl.a, Math.min(sl.s, 64)]); }));
+	cur.heap.forEach(h => { if (newHeap.has(h.a)) changedRanges.push([h.a, h.s]); });
+	changedRanges.sort((x, y) => x[0] - y[0]);
 	oldBytes = prevBytes;
 	prevBytes = new Map();
 	memFollow = true;
@@ -428,65 +448,121 @@ function renderStack() {
 	scrollToChange(pane);
 }
 
-/* raw memory */
-let memItems = [];
+/* raw memory: one continuous dump of the memory in use (globals and
+   stack, then the heap); only the rows on screen are drawn */
+const ROWH = 18, CHUNK = 4096;
+let memItems = [], memSegs = [], memRows = 0, chunks = new Map(), chunkVer = -1;
+function memLayout(s) {
+	const r = s.regions || {}, segs = [];
+	if (r.used) segs.push({ a: r.used[0] - (r.used[0] % 16), b: r.used[1] });
+	if (r.heap && r.heap[1] > r.heap[0]) segs.push({ gap: r.heap[0] - (r.used ? r.used[1] : 0) }, { a: r.heap[0] - (r.heap[0] % 16), b: r.heap[1] });
+	let n = 0;
+	for (const g of segs) { g.row = n; n += g.gap != null ? 1 : Math.ceil((g.b - g.a) / 16); }
+	memSegs = segs; memRows = n;
+}
+function rowOf(addr) {
+	for (const g of memSegs) if (g.gap == null && addr >= g.a && addr < g.b + 16) return g.row + Math.floor((addr - g.a) / 16);
+	return 0;
+}
+function rowAt(i) {
+	for (let k = memSegs.length - 1; k >= 0; k--) if (i >= memSegs[k].row) return { g: memSegs[k], i: i - memSegs[k].row };
+}
+function ownerIndex(a) {
+	let lo = 0, hi = memItems.length - 1, best = -1;
+	while (lo <= hi) { const m = (lo + hi) >> 1; if (memItems[m].a <= a) { best = m; lo = m + 1; } else hi = m - 1; }
+	return best >= 0 && a < memItems[best].a + memItems[best].s ? best : -1;
+}
+const inRanges = (a, rs) => rs.some(([x, n]) => a >= x && a < x + n);
+function byteAt(a) {
+	const c = chunks.get(Math.floor(a / CHUNK));
+	if (!c || c === 'loading') return null;
+	const k = (a % CHUNK) * 2;
+	return k < c.length ? c.slice(k, k + 2) : null;
+}
+function needChunk(a) {
+	const ci = Math.floor(a / CHUNK);
+	if (chunks.has(ci)) return;
+	chunks.set(ci, 'loading');
+	const v = version;
+	api('mem', { addr: ci * CHUNK, len: CHUNK }).then(m => { if (v === chunkVer || chunkVer === v) { chunks.set(ci, m.hex); drawDump(); } });
+}
+function drawDump() {
+	const wrap = $('#hexwrap'), h = $('#hex');
+	if (!wrap) return;
+	$('#hexspace').style.height = (memRows * ROWH) + 'px';
+	const first = Math.max(0, Math.floor(wrap.scrollTop / ROWH) - 5), last = Math.min(memRows, first + Math.ceil(wrap.clientHeight / ROWH) + 10);
+	h.style.top = (first * ROWH) + 'px';
+	h.textContent = '';
+	const sel = selected ? [[selected.a, selected.s]] : [];
+	for (let i = first; i < last; i++) {
+		const r = rowAt(i), line = el('div');
+		if (!r) continue;
+		if (r.g.gap != null) {
+			line.className = 'sep';
+			line.textContent = '   … ' + r.g.gap + ' bytes de pila sin usar …';
+			h.append(line);
+			continue;
+		}
+		const base = r.g.a + r.i * 16;
+		line.append(el('span', 'ad', hex(base).padStart(10, ' ') + '  '));
+		let ascii = '', label = '';
+		for (let k = 0; k < 16; k++) {
+			const a = base + k;
+			if (a >= r.g.b) { line.append(el('span', 'b', '   ')); continue; }
+			needChunk(a);
+			const by = byteAt(a) || '··';
+			const o = ownerIndex(a);
+			let cls = 'b';
+			if (o >= 0) { cls += ' own' + (o % 2); if (memItems[o].a === a) label += (label ? ', ' : '') + memItems[o].n; }
+			if (inRanges(a, sel)) cls += ' on';
+			if (inRanges(a, changedRanges)) cls += ' chg';
+			const b = el('span', cls, by + ' ');
+			if (o >= 0) b.title = memItems[o].n + ' (' + hex(memItems[o].a) + ', ' + memItems[o].s + ' bytes)';
+			line.append(b);
+			const c = parseInt(by, 16);
+			ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
+		}
+		line.append(el('span', 'ad', ' ' + ascii.padEnd(16, ' ') + ' '), el('span', 'nm', label));
+		h.append(line);
+	}
+}
+function memScrollTo(addr, force) {
+	const wrap = $('#hexwrap'), row = rowOf(addr), top = row * ROWH;
+	if (force || top < wrap.scrollTop || top + ROWH > wrap.scrollTop + wrap.clientHeight)
+		wrap.scrollTop = Math.max(0, top - wrap.clientHeight / 3);
+}
 function renderMem() {
 	const s = state.snap, list = $('#memlist .regions');
 	list.textContent = '';
-	memItems = [];
 	if (!s) { list.append(el('div', 'help', 'El programa no está parado.')); return; }
-	const add = (title, items) => {
+	if (chunkVer !== version) { chunks = new Map(); chunkVer = version; }
+	const items = [];
+	const add = (title, its) => {
 		list.append(el('h4', null, title));
-		items.forEach(it => {
+		its.forEach(it => {
 			const d = el('div', 'item', hex(it.a) + '  ' + it.n + ' (' + it.s + ')');
 			if (selected && selected.a === it.a && selected.n === it.n) d.classList.add('on');
-			d.onclick = () => { selected = it; renderMem(); };
+			d.onclick = () => { select(it); memScrollTo(it.a, true); };
 			list.append(d);
-			memItems.push(it);
+			items.push(it);
 		});
 	};
 	add('Variables globales', s.gslots);
-	s.frames.forEach(f => add('Pila: ' + f.name, [...f.slots].sort((a, b) => a.a - b.a).concat(f.ret ? [{ a: f.ret.a, s: 16, n: 'retorno y fp guardado' }] : [])));
+	s.frames.slice().reverse().forEach(f => add('Pila: ' + f.name, (f.ret ? [{ a: f.ret.a, s: 16, n: 'retorno y fp guardado' }] : []).concat([...f.slots].sort((a, b) => a.a - b.a))));
 	add('Memoria dinámica', s.heap.map(h => ({ a: h.a, s: h.s, n: '^' + h.t })));
-	/* show the bytes of what the last step changed */
-	if (memFollow && changed.size) {
-		const addrs = [...changed].map(k => parseInt(k));
-		const hit = memItems.find(it => addrs.some(a => a >= it.a && a < it.a + it.s));
-		if (hit) selected = hit;
+	memItems = items.slice().sort((a, b) => a.a - b.a);
+	memLayout(s);
+	$('#memttl').textContent = 'Toda la memoria en uso: variables globales y pila, y después la memoria dinámica. ' +
+		'Lo resaltado en naranja ha cambiado en el último paso.';
+	if (memFollow && changedRanges.length) {
 		memFollow = false;
+		requestAnimationFrame(() => { drawDump(); memScrollTo(changedRanges[0][0]); drawDump(); });
+	} else {
+		requestAnimationFrame(drawDump);
 	}
-	if (!selected && memItems.length) selected = memItems[0];
-	if (selected) showHex(selected);
 }
-function showHex(it) {
-	const start = Math.max(0, it.a - (it.a % 16) - 32), len = Math.min(4096, (it.a - start) + it.s + 48);
-	$('#memttl').textContent = it.n + ': ' + it.s + ' bytes desde ' + hex(it.a) + ' (resaltados)';
-	api('mem', { addr: start, len }).then(m => {
-		const h = $('#hex');
-		h.textContent = '';
-		const bytes = m.hex.match(/../g) || [];
-		const owner = a => memItems.find(x => a >= x.a && a < x.a + x.s);
-		for (let r = 0; r < bytes.length; r += 16) {
-			const line = el('div');
-			line.append(el('span', 'ad', hex(start + r).padStart(10, ' ') + '  '));
-			let ascii = '';
-			for (let k = 0; k < 16 && r + k < bytes.length; k++) {
-				const a = start + r + k, by = bytes[r + k];
-				const b = el('span', 'b' + (a >= it.a && a < it.a + it.s ? ' on' : '') +
-					(oldBytes.has(a) && oldBytes.get(a) !== by ? ' chg' : ''), by + ' ');
-				prevBytes.set(a, by);
-				const o = owner(a);
-				if (o) b.title = o.n + ' (' + hex(o.a) + ')';
-				line.append(b);
-				const c = parseInt(bytes[r + k], 16);
-				ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
-			}
-			line.append(el('span', 'ad', ' ' + ascii));
-			h.append(line);
-		}
-		scrollToChange($('#mem'));
-	});
-}
+$('#hexwrap').addEventListener('scroll', () => requestAnimationFrame(drawDump));
+window.addEventListener('resize', () => requestAnimationFrame(drawDump));
 
 /* tabs, pop-out windows, side by side */
 const VIEW = new URLSearchParams(location.search).get('view');
@@ -525,12 +601,12 @@ function select(it) {
 	selected = it;
 	if (chan) chan.postMessage(it);
 	if (!VIEW && !$('#right').classList.contains('all')) showTab('mem');
-	if (shown('mem')) renderMem();
+	if (shown('mem')) { renderMem(); requestAnimationFrame(() => { memScrollTo(it.a, true); drawDump(); }); }
 }
 if (chan) chan.onmessage = e => {
 	if (e.data && e.data.quit) { gone = true; bye(); return; }
 	selected = e.data;
-	if (shown('mem')) renderMem();
+	if (shown('mem')) { renderMem(); requestAnimationFrame(() => { memScrollTo(selected.a, true); drawDump(); }); }
 };
 if (VIEW) {
 	document.body.classList.add('popout');

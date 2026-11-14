@@ -565,7 +565,8 @@ navegador la dirección que aparece en el terminal). En ella ves:
   registro o array para plegarlo o desplegarlo;
 - **Pila**: la pila tal y como está en memoria, con las direcciones de
   retorno de cada llamada;
-- **Memoria**: los bytes de cada variable;
+- **Memoria**: toda la memoria en uso, byte a byte, con el nombre de cada
+  variable;
 - la salida del programa y una línea para escribir su entrada.
 
 En cada paso se resalta lo que ha cambiado (en Datos, Pila y Memoria) y

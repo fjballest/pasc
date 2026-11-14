@@ -172,6 +172,9 @@ def snapshot(vm, pc, fp, sp, pos):
 		'regions': {
 			'globals': [32, prog.globsize],
 			'stack': [vm.stack, fp + cur.framesize],
+			# the memory in use: globals and stack, then the heap
+			'used': [0, fp + cur.framesize],
+			'heap': [vm.stack_end, len(vm.mem)],
 		},
 	}
 
@@ -190,4 +193,5 @@ def final_snapshot(vm, pos):
 		heap.append({'a': addr, 's': size, 't': tn, 'line': line, 'v': val})
 	return {'line': pos[0] if pos else 0, 'col': pos[1] if pos else 0, 'frames': [], 'globals': globs,
 		'gslots': [{'a': addr, 's': t.size, 'n': name} for name, addr, t in prog.globals],
-		'heap': heap, 'final': True, 'regions': {}}
+		'heap': heap, 'final': True,
+		'regions': {'used': [0, vm.stack], 'heap': [vm.stack_end, len(vm.mem)]}}

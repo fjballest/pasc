@@ -147,15 +147,15 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
   arrows, so linked lists appear as chains. Garbage values are marked;
 * **Pila**: the stack as it is in memory, with addresses, sizes and bytes
   of every slot, plus each call's return address and saved frame pointer;
-* **Memoria**: a hex dump of any variable, frame slot or heap block, with
-  its bytes highlighted;
+* **Memoria**: one hex dump of all the memory in use (globals and stack,
+  then the heap), with each variable's bytes shaded and named; picking a
+  variable, slot or heap block in the list scrolls to it;
 * the program's output, and an input line for what it reads (EOF button
   for end of file).
 
 After every step (also while playing), what the step changed is
 highlighted: values in Datos (or the header of a collapsed structure that
-contains them, and new heap blocks), slots in Pila and bytes in Memoria,
-which also switches to the changed variable. Each panel scrolls so the
+contains them, and new heap blocks), slots in Pila and bytes in Memoria. Each panel scrolls so the
 change is visible.
 
 Each of Datos, Pila and Memoria has a ⧉ button that opens it in its own
