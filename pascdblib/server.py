@@ -187,16 +187,14 @@ class Session:
 					self.breaks.add(line)
 			elif cmd == 'input':
 				text = args.get('text', '') + '\n'
-				try:
-					os.write(self.inw, text.encode('latin-1', 'replace'))
-					self.output.append(('in', text))
-				except OSError:
-					pass
+				if self.inw is not None:
+					try:
+						os.write(self.inw, text.encode('latin-1', 'replace'))
+						self.output.append(('in', text))
+					except OSError:
+						pass
 			elif cmd == 'eof':
-				try:
-					os.close(self.inw)
-				except OSError:
-					pass
+				self.close_fd('inw')
 			elif cmd == 'restart':
 				self.restart_req = True
 				self.mode = 'pause'
@@ -204,16 +202,23 @@ class Session:
 			self.version += 1
 			self.cv.notify_all()
 		if cmd == 'restart':
-			try:
-				os.close(self.inw)
-			except OSError:
-				pass
+			self.close_fd('inw')		# a program waiting for input gets eof
 			self.thread.join(2)
+			old = self.vm
+			old.inp.fd = None		# never read that descriptor again
+			self.close_fd('inr')
+			self.start()
+
+	def close_fd(self, name):
+		"""Close a pipe end once: a descriptor closed twice could by then
+		belong to one of the server's sockets."""
+		fd = getattr(self, name)
+		setattr(self, name, None)
+		if fd is not None:
 			try:
-				os.close(self.inr)
+				os.close(fd)
 			except OSError:
 				pass
-			self.start()
 
 	def state(self, since):
 		"""The page's view; waits up to 1 s for something new."""
