@@ -8,14 +8,14 @@
 :root {
 	--bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #d9d9de;
 	--accent: #1f5fbf; --cur: #fff3b0; --curline: #e8b800; --bad: #c62828; --ptr: #2e7d32;
-	--rec: #eef3fb; --arr: #f3f0fa; --heap: #eef7ef; --frame: #fafafa; --chip: #eceff3;
+	--rec: #eef3fb; --arr: #f3f0fa; --heap: #eef7ef; --frame: #fafafa; --chip: #eceff3; --chg: #ffd9a8;
 	--mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 @media (prefers-color-scheme: dark) {
 	:root {
 		--bg: #18181b; --panel: #222226; --ink: #e8e8ea; --muted: #9a9aa2; --line: #3a3a40;
 		--accent: #6ea8ff; --cur: #4a4220; --curline: #e8b800; --bad: #ff6b6b; --ptr: #6fcf73;
-		--rec: #1f2a3a; --arr: #2a2438; --heap: #1f3323; --frame: #26262b; --chip: #303036;
+		--rec: #1f2a3a; --arr: #2a2438; --heap: #1f3323; --frame: #26262b; --chip: #303036; --chg: #6b4a12;
 	}
 }
 * { box-sizing: border-box; }
@@ -94,6 +94,11 @@ main { flex: 1; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; mi
 .heapblk { background: var(--heap); border: 1px solid var(--ptr); border-radius: 8px; padding: 4px 6px; }
 .heapblk .ttl { font: 11px var(--mono); color: var(--muted); }
 .sel { outline: 2px solid var(--curline); outline-offset: 1px; }
+/* what the last step changed */
+@keyframes flash { from { background: var(--curline); } to { background: var(--chg); } }
+.chg, tr.chg td, #hex .b.chg { background: var(--chg) !important; animation: flash 0.8s ease-out; }
+.box > .hd.chg { color: var(--ink); }
+.heapblk.chg { box-shadow: 0 0 0 2px var(--curline); }
 table { border-collapse: collapse; font: 12px var(--mono); }
 th, td { border-bottom: 1px solid var(--line); padding: 2px 8px; text-align: left; vertical-align: top; }
 th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--panel); }
@@ -208,16 +213,62 @@ function markSource() {
 	if (rb.top < box.top + 20 || rb.bottom > box.bottom - 20) row.scrollIntoView({ block: 'center' });
 }
 
+/* what changed since the previous step */
+let memFollow = false;
+let changed = new Set(), newHeap = new Set(), changedSlots = new Set(), prevBytes = new Map(), oldBytes = new Map();
+const leafKey = v => v.a + ':' + v.t;
+const leafText = v => v.k === 'ptr' ? 'p' + v.p : v.v;
+function leaves(snap) {
+	const m = new Map();
+	const walk = v => {
+		if (!v) return;
+		if (v.k === 'record') v.f.forEach(f => walk(f.v));
+		else if (v.k === 'array') v.items.forEach(it => walk(it.v));
+		else m.set(leafKey(v), leafText(v));
+	};
+	if (snap) {
+		snap.globals.forEach(x => walk(x.v));
+		snap.frames.forEach(f => f.vars.forEach(x => walk(x.v)));
+		snap.heap.forEach(h => walk(h.v));
+	}
+	return m;
+}
+function slotsOf(snap) {
+	const m = new Map();
+	if (snap) snap.frames.forEach(f => f.slots.forEach(sl => m.set(sl.a + ':' + sl.n, sl.hex)));
+	return m;
+}
+function diff(prev, cur) {
+	changed = new Set(); newHeap = new Set(); changedSlots = new Set();
+	if (!prev || !cur) return;
+	const a = leaves(prev), b = leaves(cur);
+	for (const [k, t] of b) if (a.has(k) && a.get(k) !== t) changed.add(k);
+	const ph = new Set(prev.heap.map(h => h.a));
+	cur.heap.forEach(h => { if (!ph.has(h.a)) newHeap.add(h.a); });
+	const sa = slotsOf(prev), sb = slotsOf(cur);
+	for (const [k, h] of sb) if (sa.has(k) && sa.get(k) !== h) changedSlots.add(k);
+	oldBytes = prevBytes;
+	prevBytes = new Map();
+	memFollow = true;
+}
+function scrollToChange(pane) {
+	const c = pane.querySelector('.chg');
+	if (!c) return;
+	const pb = pane.getBoundingClientRect(), cb = c.getBoundingClientRect();
+	if (cb.top < pb.top || cb.bottom > pb.bottom || cb.left < pb.left || cb.right > pb.right)
+		c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
 /* graphic data */
 function valueNode(v, path, depth) {
 	if (!v) return el('span', 'sc', '?');
 	if (v.k === 'scalar' || v.k === 'bad') {
-		const s = el('span', 'sc' + (v.g ? ' g' : ''), v.v);
+		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
 		if (v.g) s.title = 'Valor sin inicializar o fuera de rango (basura)';
 		return s;
 	}
 	if (v.k === 'str') {
-		const s = el('span', 'sc' + (v.g ? ' g' : ''), v.v);
+		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
 		s.title = 'longitud ' + v.n + ' de ' + v.m;
 		return s;
 	}
@@ -226,6 +277,7 @@ function valueNode(v, path, depth) {
 		p.textContent = v.st === 'nil' ? 'nil' : v.st === 'heap' ? '●' : v.st === 'dangling' ? '✗ liberado' : v.st === 'mem' ? '● @' + v.p : '✗ basura';
 		p.title = v.st === 'heap' ? 'apunta a ' + hex(v.p) : v.st === 'dangling' ? 'puntero a memoria ya liberada con dispose' : v.st === 'nil' ? 'nil' : hex(v.p);
 		if (v.st === 'heap') { p.dataset.to = v.p; p.dataset.from = path; }
+		if (changed.has(leafKey(v))) p.classList.add('chg');
 		return p;
 	}
 	const box = el('div', 'box ' + (v.k === 'record' ? 'rec' : 'arr'));
@@ -249,6 +301,7 @@ function valueNode(v, path, depth) {
 		}
 		if (v.more > 0) bd.append(el('span', 'help', '… ' + v.more + ' más'));
 	}
+	if (box.classList.contains('closed') && bd.querySelector('.chg')) hd.classList.add('chg');
 	return box;
 }
 function varNode(x, path) {
@@ -291,12 +344,13 @@ function renderData() {
 		for (const h of orderHeap(s)) {
 			const b = el('div', 'heapblk');
 			b.id = 'heap-' + h.a;
+			if (newHeap.has(h.a)) b.classList.add('chg');
 			b.append(el('div', 'ttl', '^' + h.t + '  ' + hex(h.a) + '  (new en línea ' + h.line + ')'), valueNode(h.v, 'h:' + h.a, 0));
 			right.append(b);
 		}
 		cols.append(right);
 	}
-	requestAnimationFrame(drawArrows);
+	requestAnimationFrame(() => { scrollToChange($('#data')); drawArrows(); });
 }
 /* heap blocks in the order pointers reach them, so lists read top to bottom */
 function orderHeap(s) {
@@ -357,7 +411,7 @@ function renderStack() {
 		t.append(td);
 		tb.append(t);
 		[...f.slots].sort((a, b) => b.a - a.a).forEach(sl => {
-			const r = el('tr');
+			const r = el('tr', changedSlots.has(sl.a + ':' + sl.n) ? 'chg' : null);
 			r.append(el('td', null, hex(sl.a)), el('td', null, String(sl.s)), el('td', null, sl.n + ' (' + sl.kind + ')'), el('td', null, sl.v), el('td', null, (sl.hex || '').replace(/(..)/g, '$1 ') + (sl.more ? '… +' + sl.more : '')));
 			r.onclick = () => select({ a: sl.a, s: sl.s, n: sl.n });
 			tb.append(r);
@@ -371,6 +425,7 @@ function renderStack() {
 		}
 	});
 	pane.append(tb);
+	scrollToChange(pane);
 }
 
 /* raw memory */
@@ -393,6 +448,13 @@ function renderMem() {
 	add('Variables globales', s.gslots);
 	s.frames.forEach(f => add('Pila: ' + f.name, [...f.slots].sort((a, b) => a.a - b.a).concat(f.ret ? [{ a: f.ret.a, s: 16, n: 'retorno y fp guardado' }] : [])));
 	add('Memoria dinámica', s.heap.map(h => ({ a: h.a, s: h.s, n: '^' + h.t })));
+	/* show the bytes of what the last step changed */
+	if (memFollow && changed.size) {
+		const addrs = [...changed].map(k => parseInt(k));
+		const hit = memItems.find(it => addrs.some(a => a >= it.a && a < it.a + it.s));
+		if (hit) selected = hit;
+		memFollow = false;
+	}
 	if (!selected && memItems.length) selected = memItems[0];
 	if (selected) showHex(selected);
 }
@@ -409,7 +471,10 @@ function showHex(it) {
 			line.append(el('span', 'ad', hex(start + r).padStart(10, ' ') + '  '));
 			let ascii = '';
 			for (let k = 0; k < 16 && r + k < bytes.length; k++) {
-				const a = start + r + k, b = el('span', 'b' + (a >= it.a && a < it.a + it.s ? ' on' : ''), bytes[r + k] + ' ');
+				const a = start + r + k, by = bytes[r + k];
+				const b = el('span', 'b' + (a >= it.a && a < it.a + it.s ? ' on' : '') +
+					(oldBytes.has(a) && oldBytes.get(a) !== by ? ' chg' : ''), by + ' ');
+				prevBytes.set(a, by);
 				const o = owner(a);
 				if (o) b.title = o.n + ' (' + hex(o.a) + ')';
 				line.append(b);
@@ -419,6 +484,7 @@ function showHex(it) {
 			line.append(el('span', 'ad', ' ' + ascii));
 			h.append(line);
 		}
+		scrollToChange($('#mem'));
 	});
 }
 
@@ -487,7 +553,9 @@ async function poll() {
 			const s = await api('state', { since: version });
 			if (s.status === 'quit') { gone = true; bye(); return; }
 			if (s.version !== version) {
-				const newSnap = JSON.stringify(s.snap || null) !== JSON.stringify(state ? state.snap || null : null);
+				const oldSnap = state ? state.snap || null : null;
+				const newSnap = JSON.stringify(s.snap || null) !== JSON.stringify(oldSnap);
+				if (newSnap) diff(oldSnap, s.snap || null);
 				state = s;
 				version = s.version;
 				renderStatus();

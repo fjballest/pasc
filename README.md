@@ -152,6 +152,12 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
 * the program's output, and an input line for what it reads (EOF button
   for end of file).
 
+After every step (also while playing), what the step changed is
+highlighted: values in Datos (or the header of a collapsed structure that
+contains them, and new heap blocks), slots in Pila and bytes in Memoria,
+which also switches to the changed variable. Each panel scrolls so the
+change is visible.
+
 Each of Datos, Pila and Memoria has a ⧉ button that opens it in its own
 window, and **Juntos** shows the three side by side. All the windows
 follow the same run, and a variable picked in one is shown in Memoria in
