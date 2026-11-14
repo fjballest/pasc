@@ -141,7 +141,9 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
 * the source, with the statement about to run highlighted (line and
   column), and breakpoints set by clicking line numbers;
 * **Datos**: a `var` parameter is shown as a dashed arrow to the argument
-  it refers to (it is not a copy). The program's data are drawn as boxes: one frame per active
+  it refers to (it is not a copy); when that argument was itself a `var`
+  parameter of the caller, the arrow goes to it, and from there on to the
+  original variable. The program's data are drawn as boxes: one frame per active
   procedure or function with its parameters, locals and result, the global
   variables, and the blocks allocated with `new`. Records and arrays can
   be collapsed and expanded by clicking their headers, and pointers are
@@ -160,6 +162,9 @@ After every step (also while playing), what the step changed is
 highlighted: values in Datos (or the header of a collapsed structure that
 contains them, and new heap blocks), slots in Pila and bytes in Memoria. Each panel scrolls so the
 change is visible.
+
+The **EN**/**ES** button switches the page between English and Spanish
+(remembered by the browser).
 
 Each of Datos, Pila and Memoria has a ⧉ button that opens it in its own
 window, and **Juntos** shows the three side by side. All the windows

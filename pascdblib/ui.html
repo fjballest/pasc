@@ -151,29 +151,30 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 <body>
 <header>
 	<h1>pascdb <small id="fname" style="font-weight:400;color:var(--muted)"></small></h1>
-	<button id="step" class="primary" title="Ejecuta una línea (entra en procedimientos y funciones) [Intro]">Paso</button>
-	<button id="play" title="Ejecuta despacio, sin pedir el siguiente paso [Espacio]">▶ Reproducir</button>
-	<button id="run" title="Ejecuta hasta el siguiente punto de parada o el final">⏩ Continuar</button>
-	<button id="restart" title="Vuelve a empezar">⟲ Reiniciar</button>
-	<button id="quit" title="Termina pascdb y cierra la página">✕ Salir</button>
-	<label class="help">Velocidad <input id="speed" type="range" min="0" max="2000" step="50" value="600"> <span id="speedv"></span></label>
+	<button id="step" class="primary" data-t="Paso" data-tt="Ejecuta una línea (entra en procedimientos y funciones) [Intro]">Paso</button>
+	<button id="play" data-tt="Ejecuta despacio, sin pedir el siguiente paso [Espacio]">▶ Reproducir</button>
+	<button id="run" data-t="⏩ Continuar" data-tt="Ejecuta hasta el siguiente punto de parada o el final">⏩ Continuar</button>
+	<button id="restart" data-t="⟲ Reiniciar" data-tt="Vuelve a empezar">⟲ Reiniciar</button>
+	<button id="quit" data-t="✕ Salir" data-tt="Termina pascdb y cierra la página">✕ Salir</button>
+	<button id="lang" title="Español / English">EN</button>
+	<label class="help"><span data-t="Velocidad">Velocidad</span> <input id="speed" type="range" min="0" max="2000" step="50" value="600"> <span id="speedv"></span></label>
 	<span id="status"></span>
 </header>
 <main>
 	<section id="left">
 		<div id="source"></div>
 		<div id="io">
-			<h2>Salida del programa</h2>
+			<h2 data-t="Salida del programa">Salida del programa</h2>
 			<pre id="out"></pre>
-			<div id="inrow"><input id="input" placeholder="Entrada para el programa (Intro para enviar la línea)" autocomplete="off"><button id="eof" title="Fin de la entrada (eof)">EOF</button></div>
+			<div id="inrow"><input id="input" data-tp="Entrada para el programa (Intro para enviar la línea)" placeholder="Entrada para el programa (Intro para enviar la línea)" autocomplete="off"><button id="eof" data-tt="Fin de la entrada (eof)">EOF</button></div>
 		</div>
 	</section>
 	<section id="right">
 		<div class="tabs">
-			<button data-tab="data" class="on">Datos</button><button class="pop" data-pop="data" title="Abrir Datos en otra ventana">⧉</button>
-			<button data-tab="stack">Pila</button><button class="pop" data-pop="stack" title="Abrir Pila en otra ventana">⧉</button>
-			<button data-tab="mem">Memoria</button><button class="pop" data-pop="mem" title="Abrir Memoria en otra ventana">⧉</button>
-			<button id="together" class="pop" title="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
+			<button data-tab="data" class="on" data-t="Datos">Datos</button><button class="pop" data-pop="data" data-tt="Abrir Datos en otra ventana">⧉</button>
+			<button data-tab="stack" data-t="Pila">Pila</button><button class="pop" data-pop="stack" data-tt="Abrir Pila en otra ventana">⧉</button>
+			<button data-tab="mem" data-t="Memoria">Memoria</button><button class="pop" data-pop="mem" data-tt="Abrir Memoria en otra ventana">⧉</button>
+			<button id="together" class="pop" data-t="▥ Juntos" data-tt="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
 		</div>
 		<div class="panes">
 		<div id="data" class="pane on"><div id="datacols"><svg id="arrows"></svg></div></div>
@@ -182,7 +183,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 		</div>
 	</section>
 </main>
-<div id="bye"><b>pascdb ha terminado</b><span class="help">Puedes cerrar esta ventana.</span></div>
+<div id="bye"><b data-t="pascdb ha terminado">pascdb ha terminado</b><span class="help" data-t="Puedes cerrar esta ventana.">Puedes cerrar esta ventana.</span></div>
 <script>
 "use strict";
 const T = new URLSearchParams(location.search).get('t');
@@ -193,6 +194,77 @@ const api = (p, q = {}) => fetch('/api/' + p + '?' + new URLSearchParams({ ...q,
 let lines = [], state = null, version = -1, closed = new Map(), selected = null;
 const hex = n => '0x' + Number(n).toString(16);
 
+/* languages: the page is written in Spanish; EN maps each text to English */
+const EN = {
+	'Paso': 'Step', 'Ejecuta una línea (entra en procedimientos y funciones) [Intro]': 'Run one line (entering procedures and functions) [Enter]',
+	'▶ Reproducir': '▶ Play', '⏸ Pausa': '⏸ Pause', 'Ejecuta despacio, sin pedir el siguiente paso [Espacio]': 'Run slowly, without waiting for each step [Space]',
+	'⏩ Continuar': '⏩ Continue', 'Ejecuta hasta el siguiente punto de parada o el final': 'Run to the next breakpoint or the end',
+	'⟲ Reiniciar': '⟲ Restart', 'Vuelve a empezar': 'Start again', '✕ Salir': '✕ Quit', 'Termina pascdb y cierra la página': 'End pascdb and close the page',
+	'Velocidad': 'Speed', 'Salida del programa': 'Program output',
+	'Entrada para el programa (Intro para enviar la línea)': 'Input for the program (Enter sends the line)', 'Fin de la entrada (eof)': 'End of input (eof)',
+	'Datos': 'Data', 'Pila': 'Stack', 'Memoria': 'Memory', 'Abrir Datos en otra ventana': 'Open Data in another window',
+	'Abrir Pila en otra ventana': 'Open Stack in another window', 'Abrir Memoria en otra ventana': 'Open Memory in another window',
+	'▥ Juntos': '▥ Together', 'Ver Datos, Pila y Memoria a la vez, uno al lado del otro': 'Show Data, Stack and Memory at once, side by side',
+	'pascdb ha terminado': 'pascdb has ended', 'Puedes cerrar esta ventana.': 'You can close this window.',
+	'Punto de parada': 'Breakpoint', 'Valor sin inicializar o fuera de rango (basura)': 'Uninitialised or out of range value (garbage)',
+	'longitud {0} de {1}': 'length {0} of {1}', '… {0} más': '… {0} more',
+	'Es el propio argumento {0} ({1}), no una copia. Ahora vale {2}': 'It is the argument {0} itself ({1}), not a copy. Its value now: {2}',
+	'Ver en memoria ({0}, {1} bytes)': 'Show in memory ({0}, {1} bytes)', 'El programa ha terminado': 'The program has ended',
+	'El programa ha terminado.': 'The program has ended.', 'Pulsa Paso para empezar.': 'Press Step to start.',
+	'Pila (llamadas en curso)': 'Stack (calls in progress)', 'línea {0}': 'line {0}', 'sin variables': 'no variables',
+	'Variables globales': 'Global variables', 'Memoria dinámica (new)': 'Heap (new)', 'Memoria dinámica': 'Heap',
+	'No hay pila: el programa no está parado.': 'No stack: the program is not stopped.',
+	'La pila crece hacia direcciones mayores: arriba está la llamada en curso. Cada llamada guarda antes de sus datos la dirección de retorno (la instrucción a la que vuelve) y el marco de quien la llamó.':
+		'The stack grows towards higher addresses: the current call is at the top. Before its data, each call keeps the return address (the instruction it returns to) and its caller\'s frame.',
+	'dirección': 'address', 'bytes': 'bytes', 'contenido': 'contents', 'valor': 'value', 'bytes en memoria': 'bytes in memory',
+	'{0} — marco en {1}, {2} bytes, ejecutando línea {3}': '{0} — frame at {1}, {2} bytes, running line {3}',
+	', pasado por referencia: no se cambia': ', passed by reference: not changed', ' (dirección)': ' (address)',
+	'marco de quien llamó (fp guardado)': 'caller\'s frame (saved fp)', 'dirección de retorno': 'return address',
+	'instrucción {0} (vuelve a la línea {1})': 'instruction {0} (returns to line {1})',
+	'   … {0} bytes de pila sin usar …': '   … {0} bytes of unused stack …',
+	'Puntero de pila: lo que hay después ya no se usa, pero los bytes siguen ahí': 'Stack pointer: what follows is no longer in use, but the bytes are still there',
+	'  ◀ puntero de pila (sp)': '  ◀ stack pointer (sp)', 'Pila: {0}': 'Stack: {0}', 'retorno y fp guardado': 'return address and saved fp',
+	'Toda la memoria en uso: variables globales y pila, y después la memoria dinámica. Lo resaltado en naranja ha cambiado en el último paso. Lo atenuado está por encima del puntero de pila (sp): ya no se usa, pero sus bytes siguen ahí.':
+		'All the memory in use: global variables and stack, then the heap. What is highlighted in orange changed in the last step. What is dimmed is above the stack pointer (sp): no longer in use, but its bytes are still there.',
+	'parado': 'stopped', 'ejecutando': 'running', 'esperando entrada': 'waiting for input', 'terminado': 'finished', 'empezando': 'starting',
+	' · línea {0}, columna {1}': ' · line {0}, column {1}', ' · código de salida {0}': ' · exit status {0}',
+	'pascdb no responde (¿lo has cerrado?)': 'pascdb does not answer (did you end it?)',
+	'✗ liberado': '✗ disposed', '✗ basura': '✗ garbage', 'apunta a {0}': 'points to {0}',
+	'puntero a memoria ya liberada con dispose': 'pointer to memory already freed with dispose',
+	'<dirección no válida>': '<invalid address>', 'cerrado': 'closed', 'lectura': 'reading', 'escritura': 'writing', 'sin asignar': 'not assigned',
+	'parámetro': 'parameter', 'parámetro var': 'var parameter', 'local': 'local', 'resultado': 'result', 'global': 'global',
+	'variable global': 'global variable', 'procedimiento {0}': 'procedure {0}', 'función {0}': 'function {0}', 'programa principal': 'main program',
+};
+let LANG = new URLSearchParams(location.search).get('lang');
+if (!LANG) { try { LANG = localStorage.getItem('pascdb-lang'); } catch (e) { } }
+LANG = LANG === 'en' ? 'en' : 'es';
+function L(text, ...args) {
+	let t = LANG === 'en' && EN[text] != null ? EN[text] : text;
+	return t.replace(/\{(\d)\}/g, (m, k) => args[k]);
+}
+function kindText(k) {
+	return L({ param: 'parámetro', 'var param': 'parámetro var', local: 'local', result: 'resultado', global: 'global' }[k] || k);
+}
+function frameName(f) {
+	if (f.kind === 'program') return L('programa principal');
+	return L(f.kind === 'function' ? 'función {0}' : 'procedimiento {0}', f.routine);
+}
+function whereText(w) {
+	if (w === 'global') return L('variable global');
+	if (w === 'heap') return L('Memoria dinámica');
+	if (typeof w === 'number' && state && state.snap && state.snap.frames[w]) return frameName(state.snap.frames[w]);
+	return '';
+}
+function applyLang() {
+	document.documentElement.lang = LANG;
+	document.querySelectorAll('[data-t]').forEach(e => e.textContent = L(e.dataset.t));
+	document.querySelectorAll('[data-tt]').forEach(e => e.title = L(e.dataset.tt));
+	document.querySelectorAll('[data-tp]').forEach(e => e.placeholder = L(e.dataset.tp));
+	$('#lang').textContent = LANG === 'en' ? 'ES' : 'EN';
+	$('#lang').title = LANG === 'en' ? 'Cambiar a español' : 'Switch to English';
+}
+applyLang();
+
 /* source */
 function renderSource() {
 	const src = $('#source');
@@ -201,7 +273,7 @@ function renderSource() {
 		const row = el('div', 'ln');
 		row.id = 'L' + (i + 1);
 		const no = el('span', 'no', String(i + 1));
-		no.title = 'Punto de parada';
+		no.title = L('Punto de parada');
 		no.onclick = () => api('break', { line: i + 1 });
 		row.append(no, el('span', 'tx', text || ' '));
 		src.append(row);
@@ -291,20 +363,24 @@ function valueNode(v, path, depth) {
 }
 function valueNode1(v, path, depth) {
 	if (!v) return el('span', 'sc', '?');
+	if (v.k === 'file') {
+		const mode = { closed: 'cerrado', input: 'lectura', output: 'escritura', unassigned: 'sin asignar' }[v.mode] || v.mode;
+		return el('span', 'sc', v.v ? v.v + ' (' + L(mode) + ')' : L(mode));
+	}
 	if (v.k === 'scalar' || v.k === 'bad') {
-		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
-		if (v.g) s.title = 'Valor sin inicializar o fuera de rango (basura)';
+		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.k === 'bad' ? L('<dirección no válida>') : v.v);
+		if (v.g) s.title = L('Valor sin inicializar o fuera de rango (basura)');
 		return s;
 	}
 	if (v.k === 'str') {
 		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
-		s.title = 'longitud ' + v.n + ' de ' + v.m;
+		s.title = L('longitud {0} de {1}', v.n, v.m);
 		return s;
 	}
 	if (v.k === 'ptr') {
 		const p = el('span', 'ptr ' + (v.st === 'nil' ? 'nil' : v.st === 'heap' ? '' : 'bad'));
-		p.textContent = v.st === 'nil' ? 'nil' : v.st === 'heap' ? '●' : v.st === 'dangling' ? '✗ liberado' : v.st === 'mem' ? '● @' + v.p : '✗ basura';
-		p.title = v.st === 'heap' ? 'apunta a ' + hex(v.p) : v.st === 'dangling' ? 'puntero a memoria ya liberada con dispose' : v.st === 'nil' ? 'nil' : hex(v.p);
+		p.textContent = v.st === 'nil' ? 'nil' : v.st === 'heap' ? '●' : v.st === 'dangling' ? L('✗ liberado') : v.st === 'mem' ? '● @' + v.p : L('✗ basura');
+		p.title = v.st === 'heap' ? L('apunta a {0}', hex(v.p)) : v.st === 'dangling' ? L('puntero a memoria ya liberada con dispose') : v.st === 'nil' ? 'nil' : hex(v.p);
 		if (v.st === 'heap') { p.dataset.to = v.p; p.dataset.from = path; }
 		if (changed.has(leafKey(v))) p.classList.add('chg');
 		return p;
@@ -328,30 +404,33 @@ function valueNode1(v, path, depth) {
 			c.append(el('span', 'ix', it.i), valueNode(it.v, path + '[' + it.i + ']', depth + 1));
 			bd.append(c);
 		}
-		if (v.more > 0) bd.append(el('span', 'help', '… ' + v.more + ' más'));
+		if (v.more > 0) bd.append(el('span', 'help', L('… {0} más', v.more)));
 	}
 	if (box.classList.contains('closed') && bd.querySelector('.chg')) hd.classList.add('chg');
 	return box;
 }
-function varNode(x, path) {
+function varNode(x, path, fi) {
 	const row = el('div', 'var');
 	if (x.ref && x.kind === 'var param') {
 		/* a var parameter is not a copy: it refers to the argument */
 		const nm = el('span', 'nm', x.n);
 		const lab = el('div');
-		lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), el('span', 'kd', 'parámetro var'));
+		lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), el('span', 'kd', kindText('var param')));
 		const chip = el('span', 'refchip', '→ ' + x.target);
-		chip.title = 'Es el propio argumento ' + x.target + (x.targetwhere ? ' (' + x.targetwhere + ')' : '') +
-			', no una copia. Ahora vale ' + (x.v.v != null ? x.v.v : '(' + x.v.t + ')');
+		chip.title = L('Es el propio argumento {0} ({1}), no una copia. Ahora vale {2}', x.target, whereText(x.targetwhere),
+			x.v.v != null && x.v.v !== '' ? x.v.v : '(' + x.v.t + ')');
 		chip.dataset.refto = x.v.a + ':' + x.v.t;
+		chip.dataset.refid = fi + ':' + x.n;
+		/* argument that was itself a var parameter: point at that one */
+		if (x.targetframe != null) chip.dataset.refchip = x.targetframe + ':' + x.targetparam;
 		nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n + ' → ' + x.target });
 		row.append(lab, chip);
 		return row;
 	}
 	const nm = el('span', 'nm', x.n);
-	nm.title = 'Ver en memoria (' + hex(x.v.a) + ', ' + x.v.s + ' bytes)';
+	nm.title = L('Ver en memoria ({0}, {1} bytes)', hex(x.v.a), x.v.s);
 	nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n });
-	const kd = el('span', 'kd', x.kind === 'global' ? '' : x.kind);
+	const kd = el('span', 'kd', x.kind === 'global' ? '' : kindText(x.kind));
 	const lab = el('div');
 	lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'), kd);
 	row.append(lab, valueNode(x.v, path, 0));
@@ -361,28 +440,28 @@ function renderData() {
 	const cols = $('#datacols');
 	[...cols.children].forEach(c => { if (c.id !== 'arrows') c.remove(); });
 	const s = state.snap;
-	if (!s) { cols.append(el('div', 'help', state.status === 'finished' ? 'El programa ha terminado.' : 'Pulsa Paso para empezar.')); drawArrows(); return; }
+	if (!s) { cols.append(el('div', 'help', state.status === 'finished' ? L('El programa ha terminado.') : L('Pulsa Paso para empezar.'))); drawArrows(); return; }
 	const left = el('div', 'col');
-	left.append(el('h3', null, s.final ? 'El programa ha terminado' : 'Pila (llamadas en curso)'));
+	left.append(el('h3', null, s.final ? L('El programa ha terminado') : L('Pila (llamadas en curso)')));
 	s.frames.forEach((f, i) => {
 		const fr = el('div', 'frame' + (i === 0 ? ' top' : ''));
 		const ttl = el('div', 'ttl');
-		ttl.append(document.createTextNode(f.name + ' '), el('small', null, 'línea ' + f.line));
+		ttl.append(document.createTextNode(frameName(f) + ' '), el('small', null, L('línea {0}', f.line)));
 		fr.append(ttl);
-		if (!f.vars.length) fr.append(el('div', 'help', 'sin variables'));
-		f.vars.forEach(x => fr.append(varNode(x, 'f' + (s.frames.length - i) + ':' + f.routine + ':' + x.n)));
+		if (!f.vars.length) fr.append(el('div', 'help', L('sin variables')));
+		f.vars.forEach(x => fr.append(varNode(x, 'f' + (s.frames.length - i) + ':' + f.routine + ':' + x.n, i)));
 		left.append(fr);
 	});
 	if (s.globals.length) {
 		const g = el('div', 'frame');
-		g.append(el('div', 'ttl', 'Variables globales'));
+		g.append(el('div', 'ttl', L('Variables globales')));
 		s.globals.forEach(x => g.append(varNode(x, 'g:' + x.n)));
 		left.append(g);
 	}
 	cols.append(left);
 	if (s.heap.length) {
 		const right = el('div', 'col');
-		right.append(el('h3', null, 'Memoria dinámica (new)'));
+		right.append(el('h3', null, L('Memoria dinámica (new)')));
 		for (const h of orderHeap(s)) {
 			const b = el('div', 'heapblk');
 			b.id = 'heap-' + h.a;
@@ -416,14 +495,18 @@ function drawArrows() {
 	svg.setAttribute('height', cols.scrollHeight);
 	document.querySelectorAll('#datacols .refchip[data-refto]').forEach(c => {
 		if (!c.offsetParent) return;
-		const t = [...document.querySelectorAll('#datacols [data-addr="' + c.dataset.refto + '"]')].find(e => e.offsetParent);
-		if (!t) return;
+		const t = c.dataset.refchip
+			? document.querySelector('#datacols .refchip[data-refid="' + c.dataset.refchip + '"]')
+			: [...document.querySelectorAll('#datacols [data-addr="' + c.dataset.refto + '"]')].find(e => e.offsetParent);
+		if (!t || !t.offsetParent) return;
 		const a = c.getBoundingClientRect(), b = t.getBoundingClientRect();
 		const x1 = a.right - base.left, y1 = a.top + a.height / 2 - base.top;
-		const x2 = b.right - base.left + 3, y2 = b.top + Math.min(b.height / 2, 10) - base.top;
+		/* land on the top left corner of the target: a big box's right end
+		   would look like pointing outside of it */
+		const x2 = b.left - base.left + Math.min(18, b.width / 2), y2 = b.top - base.top - 1;
 		const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		const dx = 40 + Math.abs(y2 - y1) / 8;
-		path.setAttribute('d', `M${x1},${y1} C${x1 + dx},${y1} ${x2 + dx},${y2} ${x2},${y2}`);
+		const dx = 40 + Math.abs(y2 - y1) / 10;
+		path.setAttribute('d', `M${x1},${y1} C${x1 + dx},${y1} ${x2},${y2 - 40} ${x2},${y2}`);
 		path.setAttribute('fill', 'none');
 		path.setAttribute('stroke', 'var(--accent)');
 		path.setAttribute('stroke-width', '1.3');
@@ -457,29 +540,29 @@ function renderStack() {
 	const pane = $('#stack');
 	pane.textContent = '';
 	const s = state.snap;
-	if (!s) { pane.append(el('div', 'help', 'No hay pila: el programa no está parado.')); return; }
-	pane.append(el('p', 'help', 'La pila crece hacia direcciones mayores: arriba está la llamada en curso. Cada llamada guarda antes de sus datos la dirección de retorno (la instrucción a la que vuelve) y el marco de quien la llamó.'));
+	if (!s) { pane.append(el('div', 'help', L('No hay pila: el programa no está parado.'))); return; }
+	pane.append(el('p', 'help', L('La pila crece hacia direcciones mayores: arriba está la llamada en curso. Cada llamada guarda antes de sus datos la dirección de retorno (la instrucción a la que vuelve) y el marco de quien la llamó.')));
 	const tb = el('table');
 	const hr = el('tr');
-	['dirección', 'bytes', 'contenido', 'valor', 'bytes en memoria'].forEach(h => hr.append(el('th', null, h)));
+	['dirección', 'bytes', 'contenido', 'valor', 'bytes en memoria'].forEach(h => hr.append(el('th', null, L(h))));
 	tb.append(hr);
 	s.frames.forEach(f => {
 		const t = el('tr', 'fr');
-		const td = el('td', null, f.name + ' — marco en ' + hex(f.fp) + ', ' + f.size + ' bytes, ejecutando línea ' + f.line);
+		const td = el('td', null, L('{0} — marco en {1}, {2} bytes, ejecutando línea {3}', frameName(f), hex(f.fp), f.size, f.line));
 		td.colSpan = 5;
 		t.append(td);
 		tb.append(t);
 		[...f.slots].sort((a, b) => b.a - a.a).forEach(sl => {
 			const r = el('tr', changedSlots.has(sl.a + ':' + sl.n) ? 'chg' : null);
-			r.append(el('td', null, hex(sl.a)), el('td', null, String(sl.s)), el('td', null, sl.n + ' (' + sl.kind + ')'), el('td', null, sl.v), el('td', null, (sl.hex || '').replace(/(..)/g, '$1 ') + (sl.more ? '… +' + sl.more : '')));
+			r.append(el('td', null, hex(sl.a)), el('td', null, String(sl.s)), el('td', null, sl.n + ' (' + kindText(sl.kind) + (sl.byref ? L(', pasado por referencia: no se cambia') : '') + (sl.addr ? L(' (dirección)') : '') + ')'), el('td', null, sl.v), el('td', null, (sl.hex || '').replace(/(..)/g, '$1 ') + (sl.more ? '… +' + sl.more : '')));
 			r.onclick = () => select({ a: sl.a, s: sl.s, n: sl.n });
 			tb.append(r);
 		});
 		if (f.ret) {
 			const r1 = el('tr', 'ret');
-			r1.append(el('td', null, hex(f.ret.a + 8)), el('td', null, '8'), el('td', null, 'marco de quien llamó (fp guardado)'), el('td', null, hex(f.ret.savedfp)), el('td'));
+			r1.append(el('td', null, hex(f.ret.a + 8)), el('td', null, '8'), el('td', null, L('marco de quien llamó (fp guardado)')), el('td', null, hex(f.ret.savedfp)), el('td'));
 			const r2 = el('tr', 'ret');
-			r2.append(el('td', null, hex(f.ret.a)), el('td', null, '8'), el('td', null, 'dirección de retorno'), el('td', null, 'instrucción ' + f.ret.pc + ' (vuelve a la línea ' + f.ret.line + ')'), el('td'));
+			r2.append(el('td', null, hex(f.ret.a)), el('td', null, '8'), el('td', null, L('dirección de retorno')), el('td', null, L('instrucción {0} (vuelve a la línea {1})', f.ret.pc, f.ret.line)), el('td'));
 			tb.append(r1, r2);
 		}
 	});
@@ -541,7 +624,7 @@ function drawDump() {
 		if (!r) continue;
 		if (r.g.gap != null) {
 			line.className = 'sep';
-			line.textContent = '   … ' + r.g.gap + ' bytes de pila sin usar …';
+			line.textContent = L('   … {0} bytes de pila sin usar …', r.g.gap);
 			h.append(line);
 			continue;
 		}
@@ -549,7 +632,7 @@ function drawDump() {
 		const spRow = memSp >= base && memSp < base + 16;
 		if (spRow) {
 			const m = el('span', 'spm', 'sp ▶');
-			m.title = 'Puntero de pila: lo que hay después ya no se usa, pero los bytes siguen ahí';
+			m.title = L('Puntero de pila: lo que hay después ya no se usa, pero los bytes siguen ahí');
 			line.append(m, el('span', 'ad', hex(base).padStart(6, ' ') + '  '));
 		} else {
 			line.append(el('span', 'ad', hex(base).padStart(10, ' ') + '  '));
@@ -574,7 +657,7 @@ function drawDump() {
 			ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
 		}
 		line.append(el('span', 'ad', ' ' + ascii.padEnd(16, ' ') + ' '), el('span', 'nm', label));
-		if (spHere) line.append(el('span', 'spm', '  ◀ puntero de pila (sp)'));
+		if (spHere) line.append(el('span', 'spm', L('  ◀ puntero de pila (sp)')));
 		h.append(line);
 	}
 }
@@ -586,7 +669,7 @@ function memScrollTo(addr, force) {
 function renderMem() {
 	const s = state.snap, list = $('#memlist .regions');
 	list.textContent = '';
-	if (!s) { list.append(el('div', 'help', 'El programa no está parado.')); return; }
+	if (!s) { list.append(el('div', 'help', L('El programa no está parado.'))); return; }
 	if (chunkVer !== version) { chunks = new Map(); chunkVer = version; }
 	const items = [];
 	const add = (title, its) => {
@@ -599,14 +682,12 @@ function renderMem() {
 			items.push(it);
 		});
 	};
-	add('Variables globales', s.gslots);
-	s.frames.slice().reverse().forEach(f => add('Pila: ' + f.name, (f.ret ? [{ a: f.ret.a, s: 16, n: 'retorno y fp guardado' }] : []).concat([...f.slots].sort((a, b) => a.a - b.a))));
-	add('Memoria dinámica', s.heap.map(h => ({ a: h.a, s: h.s, n: '^' + h.t })));
+	add(L('Variables globales'), s.gslots);
+	s.frames.slice().reverse().forEach(f => add(L('Pila: {0}', frameName(f)), (f.ret ? [{ a: f.ret.a, s: 16, n: L('retorno y fp guardado') }] : []).concat([...f.slots].sort((a, b) => a.a - b.a))));
+	add(L('Memoria dinámica'), s.heap.map(h => ({ a: h.a, s: h.s, n: '^' + h.t })));
 	memItems = items.slice().sort((a, b) => a.a - b.a);
 	memLayout(s);
-	$('#memttl').textContent = 'Toda la memoria en uso: variables globales y pila, y después la memoria dinámica. ' +
-		'Lo resaltado en naranja ha cambiado en el último paso. Lo atenuado está por encima del puntero de pila (sp): ' +
-		'ya no se usa, pero sus bytes siguen ahí.';
+	$('#memttl').textContent = L('Toda la memoria en uso: variables globales y pila, y después la memoria dinámica. Lo resaltado en naranja ha cambiado en el último paso. Lo atenuado está por encima del puntero de pila (sp): ya no se usa, pero sus bytes siguen ahí.');
 	if (memFollow && changedRanges.length) {
 		memFollow = false;
 		requestAnimationFrame(() => { drawDump(); memScrollTo(changedRanges[0][0]); drawDump(); });
@@ -629,7 +710,7 @@ function showTab(name) {
 document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); });
 const popups = {};
 document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () => {
-	popups[b.dataset.pop] = window.open(location.pathname + '?t=' + T + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700');
+	popups[b.dataset.pop] = window.open(location.pathname + '?t=' + T + '&lang=' + LANG + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700');
 });
 function closePopups() {
 	for (const w of Object.values(popups)) {
@@ -658,21 +739,22 @@ function select(it) {
 }
 if (chan) chan.onmessage = e => {
 	if (e.data && e.data.quit) { gone = true; bye(); return; }
+	if (e.data && e.data.lang) { LANG = e.data.lang; applyLang(); if (state) { renderStatus(); renderAll(); } return; }
 	selected = e.data;
 	if (shown('mem')) { renderMem(); requestAnimationFrame(() => { memScrollTo(selected.a, true); drawDump(); }); }
 };
 if (VIEW) {
 	document.body.classList.add('popout');
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === VIEW));
-	document.title = 'pascdb: ' + ({ data: 'Datos', stack: 'Pila', mem: 'Memoria' }[VIEW] || VIEW);
+	document.title = 'pascdb: ' + L(({ data: 'Datos', stack: 'Pila', mem: 'Memoria' })[VIEW] || VIEW);
 }
 function renderStatus() {
 	const st = $('#status'), names = { paused: 'parado', running: 'ejecutando', input: 'esperando entrada', finished: 'terminado', starting: 'empezando' };
-	let t = '<b>' + (names[state.status] || state.status) + '</b>';
-	if (state.snap) t += ' · línea ' + state.snap.line + ', columna ' + state.snap.col;
-	if (state.status === 'finished') t += ' · código de salida ' + state.exitcode;
+	let t = '<b>' + L(names[state.status] || state.status) + '</b>';
+	if (state.snap) t += L(' · línea {0}, columna {1}', state.snap.line, state.snap.col);
+	if (state.status === 'finished') t += L(' · código de salida {0}', state.exitcode);
 	st.innerHTML = t;
-	$('#play').textContent = state.mode === 'play' ? '⏸ Pausa' : '▶ Reproducir';
+	$('#play').textContent = state.mode === 'play' ? L('⏸ Pausa') : L('▶ Reproducir');
 	$('#inrow').classList.toggle('waiting', state.status === 'input');
 	if (state.status === 'input') $('#input').focus();
 	const out = $('#out');
@@ -702,7 +784,7 @@ async function poll() {
 			if (gone) return;
 			/* a pop-out window whose pascdb has ended closes itself */
 			if (VIEW) { gone = true; bye(); return; }
-			$('#status').textContent = 'pascdb no responde (¿lo has cerrado?)';
+			$('#status').textContent = L('pascdb no responde (¿lo has cerrado?)');
 			await new Promise(r => setTimeout(r, 2000));
 		}
 	}
@@ -711,6 +793,13 @@ $('#step').onclick = () => api('step');
 $('#play').onclick = () => api(state && state.mode === 'play' ? 'pause' : 'play');
 $('#run').onclick = () => api('run');
 $('#restart').onclick = () => { closed.clear(); api('restart'); };
+$('#lang').onclick = () => {
+	LANG = LANG === 'en' ? 'es' : 'en';
+	try { localStorage.setItem('pascdb-lang', LANG); } catch (e) { }
+	if (chan) chan.postMessage({ lang: LANG });
+	applyLang();
+	if (state) { renderStatus(); renderAll(); }
+};
 function bye() {
 	closePopups();
 	$('#bye').classList.add('on');

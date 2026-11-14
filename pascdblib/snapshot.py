@@ -23,7 +23,7 @@ class Describer:
 		"""A tree describing the value of type t stored at addr."""
 		d = {'a': addr, 's': t.size, 't': tname(t)}
 		if not self.ok(addr, t.size):
-			d.update(k='bad', v='<dirección no válida>', g=True)
+			d.update(k='bad', v='', g=True)
 			return d
 		if t.is_ord:
 			v = self.unpack(t.mk, addr)
@@ -87,11 +87,9 @@ class Describer:
 			files = self.vm.files
 			if 0 < h < len(files):
 				f = files[h]
-				text = '%s (%s)' % (f.name, {'closed': 'cerrado', 'input': 'lectura',
-					'output': 'escritura'}.get(f.mode, f.mode))
+				d.update(k='file', v=f.name, mode=f.mode, g=False)
 			else:
-				text = 'sin asignar'
-			d.update(k='scalar', v=text, g=False)
+				d.update(k='file', v='', mode='unassigned', g=False)
 		else:
 			d.update(k='scalar', v='?', g=False)
 		return d
@@ -107,8 +105,9 @@ def where_line(prog, pc):
 
 
 def label_index(frames, globs, heap):
-	"""(address, type) -> a readable name for every variable, field and
-	element, to say what a var parameter refers to."""
+	"""(address, type) -> (name, where) for every variable, field and
+	element that is not a var parameter, to say what one refers to.
+	'where' is 'global', 'heap' or the index of the frame."""
 	idx = {}
 
 	def walk(v, name, where):
@@ -123,14 +122,63 @@ def label_index(frames, globs, heap):
 				walk(it['v'], '%s[%s]' % (name, it['i']), where)
 
 	for x in globs:
-		walk(x['v'], x['n'], 'variable global')
-	for f in reversed(frames):
+		walk(x['v'], x['n'], 'global')
+	for k in range(len(frames) - 1, -1, -1):
+		for x in frames[k]['vars']:
+			if not x.get('ref'):
+				walk(x['v'], x['n'], k)
+	for h in heap:
+		walk(h['v'], '^%s@0x%x' % (h['t'], h['a']), 'heap')
+	return idx
+
+
+def ref_targets(frames, idx):
+	"""What each var parameter refers to.  When the argument was itself a
+	var parameter of the caller (or part of one), the target is that
+	parameter, which in turn refers to its own argument, and so on."""
+	for i, f in enumerate(frames):
 		for x in f['vars']:
 			if not x.get('ref'):
-				walk(x['v'], x['n'], f['name'])
-	for h in heap:
-		walk(h['v'], '^%s en 0x%x' % (h['t'], h['a']), 'memoria dinámica')
-	return idx
+				continue
+			v = x['v']
+			key = (v['a'], v['t'])
+			hit = None
+			for j in range(i + 1, len(frames)):		# callers, nearest first
+				for y in frames[j]['vars']:
+					if not y.get('ref') or y['kind'] != 'var param':
+						continue
+					label = path_in(y['v'], key, y['n'])
+					if label is not None:
+						hit = (label, j, y['n'])
+						break
+				if hit:
+					break
+			if hit:
+				x['target'], x['targetframe'], x['targetparam'] = hit
+				x['targetwhere'] = hit[1]
+			else:
+				name, where = idx.get(key, ('0x%x' % v['a'], ''))
+				x['target'] = name
+				x['targetwhere'] = where
+
+
+def path_in(v, key, name):
+	"""Name of the part of value v at key (address, type), or None."""
+	if not v or 'a' not in v:
+		return None
+	if (v['a'], v['t']) == key:
+		return name
+	if v.get('k') == 'record':
+		for f in v['f']:
+			r = path_in(f['v'], key, '%s.%s' % (name, f['n']))
+			if r is not None:
+				return r
+	elif v.get('k') == 'array':
+		for it in v['items']:
+			r = path_in(it['v'], key, '%s[%s]' % (name, it['i']))
+			if r is not None:
+				return r
+	return None
 
 
 def snapshot(vm, pc, fp, sp, pos, highwater=0):
@@ -146,6 +194,7 @@ def snapshot(vm, pc, fp, sp, pos, highwater=0):
 	for k, (r, rfp, rpc, saved) in enumerate(stack):
 		f = {
 			'name': vm.rname(r),
+			'kind': r.kind,
 			'routine': r.name,
 			'line': where_line(prog, rpc),
 			'fp': rfp,
@@ -157,10 +206,9 @@ def snapshot(vm, pc, fp, sp, pos, highwater=0):
 			slot = rfp + off
 			if wk == 'r':
 				ref = desc.unpack('Q', slot)
-				f['slots'].append({'a': slot, 's': 8, 'n': name, 'kind': kind + (
-					', pasado por referencia: no se cambia' if kind == 'param' else '') + ' (dirección)',
-					'hex': desc.hexbytes(slot, 8), 'v': '-> %d' % ref})
-				val = desc.value(t, ref) if desc.ok(ref, t.size) else {'k': 'bad', 'v': '<no válida>', 'g': True,
+				f['slots'].append({'a': slot, 's': 8, 'n': name, 'kind': kind, 'addr': True,
+					'byref': kind == 'param', 'hex': desc.hexbytes(slot, 8), 'v': '-> 0x%x' % ref})
+				val = desc.value(t, ref) if desc.ok(ref, t.size) else {'k': 'bad', 'v': '', 'g': True,
 					'a': ref, 's': t.size, 't': tname(t)}
 				f['vars'].append({'n': name, 'kind': kind, 'ref': True, 'v': val})
 			else:
@@ -191,16 +239,10 @@ def snapshot(vm, pc, fp, sp, pos, highwater=0):
 			'a': addr, 's': size, 't': tn, 'g': False}
 		heap.append({'a': addr, 's': size, 't': tn, 'line': line, 'v': val})
 	# what each var parameter refers to
-	idx = label_index(frames, globs, heap)
+	ref_targets(frames, label_index(frames, globs, heap))
 	for f in frames:
-		for x in f['vars']:
-			if x.get('ref'):
-				v = x['v']
-				name, where = idx.get((v['a'], v['t']), ('0x%x' % v['a'], ''))
-				x['target'] = name
-				x['targetwhere'] = where
 		for sl in f['slots']:
-			if sl['kind'].endswith('(dirección)'):
+			if sl.get('addr'):
 				ref = desc.unpack('Q', sl['a'])
 				for x in f['vars']:
 					if x['n'] == sl['n'] and x.get('target'):

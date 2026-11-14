@@ -573,6 +573,8 @@ navegador la dirección que aparece en el terminal). En ella ves:
 En cada paso se resalta lo que ha cambiado (en Datos, Pila y Memoria) y
 cada panel se desplaza para que se vea.
 
+El botón **EN**/**ES** cambia el idioma de la página (inglés o español).
+
 El botón ⧉ de Datos, Pila o Memoria abre esa parte en otra ventana, y
 **Juntos** las muestra las tres a la vez, una al lado de otra.
 
