@@ -5,8 +5,35 @@ the course sources (the `.p` files in the parent directory). It is pure
 Python 3 (3.7 or later), has no dependencies, and runs the same way on
 macOS, Linux and Windows.
 
+## Installing
+
+Download an installer from the
+[releases page](https://github.com/fjballest/pasc/releases). None of them
+needs Python:
+
+* **Windows 7 or later:** run `pasc-VERSION-windows-setup.exe`. It needs no
+  administrator rights and adds `pasc` to the PATH; open a new terminal
+  afterwards. `pasc-VERSION-windows-portable.zip` is the same without
+  installing.
+* **macOS 10.13 or later** (Intel and Apple silicon): open
+  `pasc-VERSION-macos.pkg`. It installs `/usr/local/bin/pasc`. The package is
+  not signed, so if macOS refuses to open it, right-click it and choose Open.
+* **Linux x86_64** (any distribution from 2017 on): unpack
+  `pasc-VERSION-linux-x86_64.tar.gz` and run `./install.sh`. It installs
+  in `~/.local/bin`; `sudo ./install.sh /usr/local` installs for everyone.
+* **Anywhere with Python 3.7 or later:** unzip `pasc-VERSION-source.zip`
+  and run `python3 pasc.py prog.p`.
+
+To make a new release, set `VERSION` in `pasclib/__init__.py` and push a
+tag such as `v1.1`. The workflow in `.github/workflows/release.yml` tests
+pasc, builds the installers with PyInstaller on GitHub and publishes them.
+Running the workflow by hand only builds them; they appear as artifacts
+of the run.
+
+## Using it
+
 ```
-./pasc prog.p            # macOS / Linux   (or: python3 pasc.py prog.p)
+./pasc prog.p            # from the source: macOS / Linux   (or: python3 pasc.py prog.p)
 pasc prog.p              # Windows, using pasc.bat (needs the py launcher)
 pasc -c prog.p           # only compile (check) the program
 pasc -S prog.p           # print the bytecode
