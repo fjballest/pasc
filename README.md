@@ -7,7 +7,7 @@ macOS, Linux and Windows.
 
 ## Installing
 
-Students: see [INSTALAR.md](INSTALAR.md), a step-by-step guide in Spanish.
+Students: see [INSTALAR.md](INSTALAR.md), a step-by-step guide in Spanish. Each release also carries it as a PDF (`pasc-VERSION-INSTALAR.pdf`), and every installer and zip includes it as `INSTALAR.pdf`; the workflow builds it with `packaging/docs/build-pdf.py`.
 
 Download an installer from the
 [releases page](https://github.com/fjballest/pasc/releases). None of them

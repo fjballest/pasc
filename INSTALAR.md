@@ -97,7 +97,7 @@ ventana del terminal (así se escribe su ruta completa) y pulsa **Intro**.
 
 - **Windows:** pulsa **Windows + R**, escribe `winver` y pulsa Intro.
   pasc funciona en Windows 7, 8, 10 y 11, de 64 bits.
-- **macOS:** menú **** → *Acerca de este Mac*. pasc funciona en macOS 10.13
+- **macOS:** menú de la manzana (arriba a la izquierda) → *Acerca de este Mac*. pasc funciona en macOS 10.13
   (High Sierra) o posterior, tanto en Mac con procesador Intel como en Mac
   con Apple silicon (M1, M2, M3...).
 - **Linux:** pasc funciona en ordenadores de 64 bits (x86_64) con cualquier

@@ -28,6 +28,10 @@ MinVersion=6.1
 Source: "..\..\dist\pasc\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
+[Icons]
+Name: "{userprograms}\pasc\Guía de instalación y uso de pasc"; Filename: "{app}\INSTALAR.pdf"
+Name: "{userprograms}\pasc\Desinstalar pasc"; Filename: "{uninstallexe}"
+
 [Registry]
 Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
 	ValueData: "{olddata};{app}"; Check: NeedsAddPath(ExpandConstant('{app}'))
