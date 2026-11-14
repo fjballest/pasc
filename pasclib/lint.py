@@ -135,6 +135,13 @@ def normalized_body(tokens, r):
 	own = r.name[0]
 	seen = {}
 	out = []
+	# the parameter and local types are part of what the routine does
+	tkey = lambda t: repr(t).lower()
+	for p in r.params:
+		out.append(('param', p.mode, len(p.names), tkey(p.typ)))
+	out.append(('result', tkey(r.rettype) if r.rettype is not None else None))
+	out.append(('locals', tuple(sorted(tkey(d.typ) for d in r.decls if isinstance(d, A.VarDecl)
+		for _ in d.names))))
 	for t in tokens[r.body.tok0:r.body.tok1]:
 		if t.kind == 'id' and t.value in local:
 			if t.value == own:
@@ -153,7 +160,8 @@ def duplicates_check(tree, routines, found):
 	bodies = []
 	for r in routines:
 		b = normalized_body(tree.tokens, r)
-		if len(b) - 2 < limit:		# not counting begin and end
+		ntok = r.body.tok1 - r.body.tok0
+		if ntok - 2 < limit:		# not counting begin and end
 			continue
 		for other, ob in bodies:
 			if ob == b:
