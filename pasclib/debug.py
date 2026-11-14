@@ -14,14 +14,15 @@ def is_garbage(text):
 
 
 def runs(keys):
-	"""Group consecutive equal keys (garbage counts as equal to garbage).
-	Yields (start, end) index ranges, end exclusive."""
+	"""Group consecutive equal keys.  A key is (text, garbage): elements
+	that are garbage all count as equal.  Yields (start, end) ranges."""
 	i = 0
 	n = len(keys)
+	group = lambda k: 'garbage' if k[1] else k[0]
 	while i < n:
 		j = i + 1
-		k = 'garbage' if is_garbage(keys[i]) else keys[i]
-		while j < n and ('garbage' if is_garbage(keys[j]) else keys[j]) == k:
+		k = group(keys[i])
+		while j < n and group(keys[j]) == k:
 			j += 1
 		yield i, j
 		i = j
@@ -81,6 +82,18 @@ class Formatter:
 		self.vm = vm
 		self.mem = vm.mem
 
+	def garbage(self, t, addr):
+		"""Is the value garbage?  A record is when its first field is, and an
+		array when its first element is."""
+		while True:
+			if t.is_record and t.fields:
+				off, ft, _ = next(iter(t.fields.values()))
+				t, addr = ft, addr + off
+			elif t.is_array and not t.is_chararray() and t.count:
+				t = t.elem
+			else:
+				return is_garbage(self.value(t, addr, 9))
+
 	def value(self, t, addr, depth=0):
 		mem = self.mem
 		if addr < 0 or addr + t.size > len(mem):
@@ -114,8 +127,9 @@ class Formatter:
 				return '[...]'
 			scan = min(t.count, MAXSCAN)
 			vals = [self.value(t.elem, addr + i * t.elem.size, depth + 1) for i in range(scan)]
+			keys = [(v, self.garbage(t.elem, addr + i * t.elem.size)) for i, v in enumerate(vals)]
 			items = []
-			for i in abbreviate(vals):
+			for i in abbreviate(keys):
 				if len(items) >= MAXELEMS:
 					items.append('... %d more' % (t.count - i if i is not None else 0))
 					break
@@ -199,7 +213,8 @@ class Pretty:
 		if t.is_array and not t.is_chararray() and depth < self.maxdepth:
 			out = [pad + prefix + '[']
 			scan = min(t.count, MAXSCAN)
-			keys = [f.value(t.elem, addr + i * t.elem.size, depth + 1) for i in range(scan)]
+			keys = [(f.value(t.elem, addr + i * t.elem.size, depth + 1), f.garbage(t.elem, addr + i * t.elem.size))
+				for i in range(scan)]
 			shown = 0
 			for i in abbreviate(keys):
 				if shown >= self.maxelems:
