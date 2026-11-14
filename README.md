@@ -143,7 +143,9 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
 * **Datos**: a `var` parameter is shown as a dashed arrow to the argument
   it refers to (it is not a copy); when that argument was itself a `var`
   parameter of the caller, the arrow goes to it, and from there on to the
-  original variable. The program's data are drawn as boxes: one frame per active
+  original variable. A button switches to drawing `var` parameters as faded copies
+  of their argument instead. Strings longer than 40 characters are cut
+  (click one to see it whole). The program's data are drawn as boxes: one frame per active
   procedure or function with its parameters, locals and result, the global
   variables, and the blocks allocated with `new`. Records and arrays can
   be collapsed and expanded by clicking their headers, and pointers are

@@ -58,7 +58,11 @@ main { flex: 1; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; mi
 .pane { flex: 1; overflow: auto; position: relative; display: none; padding: 10px; }
 .pane.on { display: block; }
 #data { display: none; }
-#data.on { display: flex; gap: 24px; align-items: flex-start; }
+#data.on { display: block; }
+.datatools { margin-bottom: 8px; }
+.datatools button { font-size: 12px; padding: 2px 8px; }
+.sc.long { cursor: pointer; }
+.refcopy { opacity: 0.55; filter: saturate(0.4); border-left: 3px dashed var(--accent); padding-left: 4px; }
 #datacols { display: flex; gap: 28px; align-items: flex-start; position: relative; padding-right: 90px; padding-bottom: 20px; }
 #arrows { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .col { display: flex; flex-direction: column; gap: 10px; min-width: 220px; }
@@ -177,7 +181,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 			<button id="together" class="pop" data-t="▥ Juntos" data-tt="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
 		</div>
 		<div class="panes">
-		<div id="data" class="pane on"><div id="datacols"><svg id="arrows"></svg></div></div>
+		<div id="data" class="pane on"><div class="datatools"><button id="refmode"></button></div><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
 		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div></div></div>
 		</div>
@@ -191,7 +195,10 @@ const $ = (s, e = document) => e.querySelector(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const api = (p, q = {}) => fetch('/api/' + p + '?' + new URLSearchParams({ ...q, t: T })).then(r => r.json());
 
-let lines = [], state = null, version = -1, closed = new Map(), selected = null;
+let lines = [], state = null, version = -1, closed = new Map(), selected = null, openStr = new Set();
+const MAXSTR = 40;	/* longer strings are cut in Datos */
+let refCopies = false;	/* draw var parameters as (faded) copies instead of arrows */
+try { refCopies = localStorage.getItem('pascdb-refs') === 'copy'; } catch (e) { }
 const hex = n => '0x' + Number(n).toString(16);
 
 /* languages: the page is written in Spanish; EN maps each text to English */
@@ -233,7 +240,11 @@ const EN = {
 	'puntero a memoria ya liberada con dispose': 'pointer to memory already freed with dispose',
 	'<dirección no válida>': '<invalid address>', 'cerrado': 'closed', 'lectura': 'reading', 'escritura': 'writing', 'sin asignar': 'not assigned',
 	'parámetro': 'parameter', 'parámetro var': 'var parameter', 'local': 'local', 'resultado': 'result', 'global': 'global',
-	'variable global': 'global variable', 'procedimiento {0}': 'procedure {0}', 'función {0}': 'function {0}', 'programa principal': 'main program',
+	'variable global': 'global variable',
+	'pulsa para ver entera o recortada': 'click to show it whole or cut',
+	'Parámetros var: dibujar como flechas': 'var parameters: draw as arrows',
+	'Parámetros var: dibujar como copias': 'var parameters: draw as copies',
+	'Los parámetros var son referencias al argumento; esto solo cambia cómo se dibujan': 'var parameters refer to their argument; this only changes how they are drawn', 'procedimiento {0}': 'procedure {0}', 'función {0}': 'function {0}', 'programa principal': 'main program',
 };
 let LANG = new URLSearchParams(location.search).get('lang');
 if (!LANG) { try { LANG = localStorage.getItem('pascdb-lang'); } catch (e) { } }
@@ -375,6 +386,22 @@ function valueNode1(v, path, depth) {
 	if (v.k === 'str') {
 		const s = el('span', 'sc' + (v.g ? ' g' : '') + (changed.has(leafKey(v)) ? ' chg' : ''), v.v);
 		s.title = L('longitud {0} de {1}', v.n, v.m);
+		if (v.v.length > MAXSTR) {
+			/* long strings (often garbage) are cut; a click shows them whole */
+			const key = 'str:' + path;
+			const short = v.v.slice(0, MAXSTR) + '…';
+			s.classList.add('long');
+			s.textContent = openStr.has(key) ? v.v : short;
+			s.title += ' · ' + L('pulsa para ver entera o recortada');
+			s.onclick = () => {
+				if (openStr.has(key)) openStr.delete(key); else openStr.add(key);
+				s.textContent = openStr.has(key) ? v.v : short;
+				s.style.whiteSpace = openStr.has(key) ? 'normal' : '';
+				s.style.wordBreak = openStr.has(key) ? 'break-all' : '';
+				drawArrows();
+			};
+			if (openStr.has(key)) { s.style.whiteSpace = 'normal'; s.style.wordBreak = 'break-all'; }
+		}
 		return s;
 	}
 	if (v.k === 'ptr') {
@@ -411,6 +438,23 @@ function valueNode1(v, path, depth) {
 }
 function varNode(x, path, fi) {
 	const row = el('div', 'var');
+	if (x.ref && x.kind === 'var param' && refCopies) {
+		/* drawn like the argument, faded: it is a reference, not a copy */
+		const nm = el('span', 'nm', x.n);
+		nm.title = L('Es el propio argumento {0} ({1}), no una copia. Ahora vale {2}', x.target, whereText(x.targetwhere),
+			x.v.v != null && x.v.v !== '' ? x.v.v : '(' + x.v.t + ')');
+		nm.onclick = () => select({ a: x.v.a, s: x.v.s, n: x.n + ' → ' + x.target });
+		const lab = el('div');
+		lab.append(nm, document.createTextNode(': '), el('span', 'kd', x.v.t), document.createElement('br'),
+			el('span', 'kd', kindText('var param') + ' → ' + x.target));
+		const val = valueNode(x.v, path, 0);
+		val.classList.add('refcopy');
+		/* the copy must not be mistaken for the argument by the arrows */
+		val.querySelectorAll('[data-addr]').forEach(e => delete e.dataset.addr);
+		delete val.dataset.addr;
+		row.append(lab, val);
+		return row;
+	}
 	if (x.ref && x.kind === 'var param') {
 		/* a var parameter is not a copy: it refers to the argument */
 		const nm = el('span', 'nm', x.n);
@@ -436,7 +480,19 @@ function varNode(x, path, fi) {
 	row.append(lab, valueNode(x.v, path, 0));
 	return row;
 }
+function refModeLabel() {
+	$('#refmode').textContent = refCopies ? L('Parámetros var: dibujar como flechas') : L('Parámetros var: dibujar como copias');
+	$('#refmode').title = L('Los parámetros var son referencias al argumento; esto solo cambia cómo se dibujan');
+}
+refModeLabel();
+$('#refmode').onclick = () => {
+	refCopies = !refCopies;
+	try { localStorage.setItem('pascdb-refs', refCopies ? 'copy' : 'arrow'); } catch (e) { }
+	refModeLabel();
+	if (state) renderData();
+};
 function renderData() {
+	refModeLabel();
 	const cols = $('#datacols');
 	[...cols.children].forEach(c => { if (c.id !== 'arrows') c.remove(); });
 	const s = state.snap;

@@ -562,7 +562,9 @@ navegador la dirección que aparece en el terminal). En ella ves:
 - el programa, con la línea que se va a ejecutar resaltada;
 - **Datos**: las variables dibujadas como cajas (registros, arrays y listas
   enlazadas, con flechas para los punteros). Pulsa la cabecera de un
-  registro o array para plegarlo o desplegarlo;
+  registro o array para plegarlo o desplegarlo; los parámetros `var` se dibujan como
+  una flecha al argumento (o, con el botón de arriba, como una copia
+  atenuada);
 - **Pila**: la pila tal y como está en memoria, con las direcciones de
   retorno de cada llamada;
 - **Memoria**: toda la memoria en uso, byte a byte, con el nombre de cada
