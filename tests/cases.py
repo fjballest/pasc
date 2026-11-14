@@ -4,7 +4,9 @@ header comment)."""
 import os, re, shutil, glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.dirname(os.path.dirname(HERE))	# the course src directory
+# the course programs: ../src next to pasc (pasc used to live inside src)
+_up = os.path.dirname(os.path.dirname(HERE))
+SRC = os.path.join(_up, 'src') if os.path.isdir(os.path.join(_up, 'src')) else _up
 DATAFILES = ['datos', 'datos.txt', 'texto', 'guide', 'fich.txt', 'edin.txt']
 
 def programs():

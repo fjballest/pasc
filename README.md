@@ -1,7 +1,7 @@
 # pasc
 
 `pasc` runs programs written in the restricted Free Pascal dialect used in
-the course sources (the `.p` files in the parent directory). It is pure
+the course sources (the `.p` files in `../src`). It is pure
 Python 3 (3.7 or later), has no dependencies, and runs the same way on
 macOS, Linux and Windows.
 
@@ -282,7 +282,7 @@ text variables. As in fpc, `and` and `or` short-circuit.
 ## Tests
 
 ```
-python3 tests/run_tests.py     # every program in the course directory
+python3 tests/run_tests.py     # every program in the course directory (../src)
 python3 tests/difftest.py      # tests/extra: edge cases and compile errors
 python3 tests/lint_test.py     # tests/lint: the warnings
 python3 tests/features_test.py # stack(), leak report, random memory
