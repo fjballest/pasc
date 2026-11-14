@@ -7,6 +7,8 @@ macOS, Linux and Windows.
 
 ## Installing
 
+Students: see [INSTALAR.md](INSTALAR.md), a step-by-step guide in Spanish.
+
 Download an installer from the
 [releases page](https://github.com/fjballest/pasc/releases). None of them
 needs Python:
