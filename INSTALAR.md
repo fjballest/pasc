@@ -571,6 +571,8 @@ navegador la dirección que aparece en el terminal). En ella ves:
 - **Memoria**: toda la memoria en uso, byte a byte, con el nombre de cada
   variable. Lo que está por encima del puntero de pila (`sp ▶`) aparece
   atenuado: ya no se usa, pero sigue ahí;
+- **Ficheros**: los ficheros abiertos para leer (y la entrada estándar),
+  con lo ya leído atenuado y el siguiente carácter que se leerá resaltado;
 - la salida del programa y una línea para escribir su entrada.
 
 En cada paso se resalta lo que ha cambiado (en Datos, Pila y Memoria) y
@@ -578,8 +580,8 @@ cada panel se desplaza para que se vea.
 
 El botón **EN**/**ES** cambia el idioma de la página (inglés o español).
 
-El botón ⧉ de Datos, Pila o Memoria abre esa parte en otra ventana, y
-**Juntos** las muestra las tres a la vez, una al lado de otra.
+El botón ⧉ de Datos, Pila, Memoria o Ficheros abre esa parte en otra
+ventana, y **Juntos** las muestra a la vez, una al lado de otra.
 
 Botones: **Paso** (o la tecla Intro) ejecuta una línea, entrando en los
 procedimientos y funciones; **Reproducir** (o la barra espaciadora) lo

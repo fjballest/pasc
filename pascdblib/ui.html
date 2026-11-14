@@ -62,6 +62,13 @@ main { flex: 1; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; mi
 .datatools { margin-bottom: 8px; }
 .datatools button { font-size: 12px; padding: 2px 8px; }
 .sc.long { cursor: pointer; }
+.infile { margin-bottom: 14px; }
+.infile h4 { margin: 0 0 4px; font-size: 13px; }
+.infile pre { margin: 0; font: 13px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; background: var(--panel);
+	border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-height: 60vh; overflow: auto; tab-size: 8; }
+.infile .done { color: var(--muted); }
+.infile .here { background: var(--curline); color: #000; border-radius: 2px; box-shadow: 0 0 0 1px var(--curline); }
+.infile .eol { color: var(--muted); font-size: 10px; }
 .refcopy { opacity: 0.55; filter: saturate(0.4); border-left: 3px dashed var(--accent); padding-left: 4px; }
 #datacols { display: flex; gap: 28px; align-items: flex-start; position: relative; padding-right: 90px; padding-bottom: 20px; }
 #arrows { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
@@ -178,11 +185,13 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 			<button data-tab="data" class="on" data-t="Datos">Datos</button><button class="pop" data-pop="data" data-tt="Abrir Datos en otra ventana">⧉</button>
 			<button data-tab="stack" data-t="Pila">Pila</button><button class="pop" data-pop="stack" data-tt="Abrir Pila en otra ventana">⧉</button>
 			<button data-tab="mem" data-t="Memoria">Memoria</button><button class="pop" data-pop="mem" data-tt="Abrir Memoria en otra ventana">⧉</button>
+			<button data-tab="files" data-t="Ficheros">Ficheros</button><button class="pop" data-pop="files" data-tt="Abrir Ficheros en otra ventana">⧉</button>
 			<button id="together" class="pop" data-t="▥ Juntos" data-tt="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
 		</div>
 		<div class="panes">
 		<div id="data" class="pane on"><div class="datatools"><button id="refmode"></button></div><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
+		<div id="files" class="pane"></div>
 		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div></div></div>
 		</div>
 	</section>
@@ -241,6 +250,11 @@ const EN = {
 	'<dirección no válida>': '<invalid address>', 'cerrado': 'closed', 'lectura': 'reading', 'escritura': 'writing', 'sin asignar': 'not assigned',
 	'parámetro': 'parameter', 'parámetro var': 'var parameter', 'local': 'local', 'resultado': 'result', 'global': 'global',
 	'variable global': 'global variable',
+	'Ficheros': 'Files', 'Abrir Ficheros en otra ventana': 'Open Files in another window',
+	'Ficheros abiertos para leer. Lo ya leído aparece atenuado y el siguiente carácter que se leerá, resaltado.': 'Files open for reading. What has been read is dimmed, and the next character to be read is highlighted.',
+	'No hay ficheros abiertos para leer.': 'No files are open for reading.', 'esperando más entrada': 'waiting for more input',
+	'fin de fichero (eof)': 'end of file (eof)', 'posición {0} de {1}': 'position {0} of {1}',
+	'entrada estándar (input)': 'standard input (input)', 'Siguiente carácter que se leerá': 'Next character to be read',
 	'pulsa para ver entera o recortada': 'click to show it whole or cut',
 	'Parámetros var: dibujar como flechas': 'var parameters: draw as arrows',
 	'Parámetros var: dibujar como copias': 'var parameters: draw as copies',
@@ -763,7 +777,7 @@ function showTab(name) {
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === name));
 	if (name === 'data') drawArrows();
 }
-document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); });
+document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); if (b.dataset.tab === 'files') renderFiles(); });
 const popups = {};
 document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () => {
 	popups[b.dataset.pop] = window.open(location.pathname + '?t=' + T + '&lang=' + LANG + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700');
@@ -784,6 +798,38 @@ function renderAll() {
 	if (shown('data')) renderData();
 	if (shown('stack')) renderStack();
 	if (shown('mem')) renderMem();
+	if (shown('files')) renderFiles();
+}
+/* input files, with what has been read so far and the read position */
+function renderFiles() {
+	const pane = $('#files');
+	pane.textContent = '';
+	const s = state.snap;
+	if (!s) { pane.append(el('div', 'help', L('El programa no está parado.'))); return; }
+	pane.append(el('p', 'help', L('Ficheros abiertos para leer. Lo ya leído aparece atenuado y el siguiente carácter que se leerá, resaltado.')));
+	if (!s.files || !s.files.length) { pane.append(el('div', 'help', L('No hay ficheros abiertos para leer.'))); return; }
+	let target = null;
+	for (const f of s.files) {
+		const box = el('div', 'infile');
+		const at = f.pos >= f.size ? (f.more ? L('esperando más entrada') : L('fin de fichero (eof)')) : L('posición {0} de {1}', f.pos, f.size);
+		box.append(el('h4', null, (f.std ? L('entrada estándar (input)') : f.name) + ' — ' + at));
+		const pre = el('pre');
+		const rel = f.pos - f.start, t = f.text;
+		const vis = c => c === '\n' ? '↵\n' : c;
+		const done = el('span', 'done');
+		done.textContent = t.slice(0, Math.max(0, rel)).replace(/\n/g, '↵\n');
+		pre.append(done);
+		const here = el('span', 'here', rel < t.length ? vis(t[rel]) : ' ');
+		here.title = L('Siguiente carácter que se leerá');
+		pre.append(here, document.createTextNode(t.slice(rel + 1).replace(/\n/g, '↵\n')));
+		box.append(pre);
+		pane.append(box);
+		if (!target) target = { pre, here };
+		requestAnimationFrame(() => {
+			const pb = pre.getBoundingClientRect(), hb = here.getBoundingClientRect();
+			if (hb.top < pb.top || hb.bottom > pb.bottom) pre.scrollTop += hb.top - pb.top - pre.clientHeight / 3;
+		});
+	}
 }
 /* windows of the same session share the selected variable */
 const chan = window.BroadcastChannel ? new BroadcastChannel('pascdb-' + T) : null;
@@ -802,7 +848,7 @@ if (chan) chan.onmessage = e => {
 if (VIEW) {
 	document.body.classList.add('popout');
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === VIEW));
-	document.title = 'pascdb: ' + L(({ data: 'Datos', stack: 'Pila', mem: 'Memoria' })[VIEW] || VIEW);
+	document.title = 'pascdb: ' + L(({ data: 'Datos', stack: 'Pila', mem: 'Memoria', files: 'Ficheros' })[VIEW] || VIEW);
 }
 function renderStatus() {
 	const st = $('#status'), names = { paused: 'parado', running: 'ejecutando', input: 'esperando entrada', finished: 'terminado', starting: 'empezando' };

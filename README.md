@@ -162,6 +162,9 @@ local web server; the Salir button or Ctrl+C in the terminal ends it). The page 
   variable, slot or heap block in the list scrolls to it. The stack is
   shown as far as it has grown: bytes above the stack pointer (marked
   `sp ▶`) are dimmed, since they are no longer in use but still there;
+* **Ficheros**: every text file open for reading (and the standard
+  input), with what has been read dimmed and the next character to read
+  highlighted;
 * the program's output, and an input line for what it reads (EOF button
   for end of file).
 
@@ -173,8 +176,8 @@ change is visible.
 The **EN**/**ES** button switches the page between English and Spanish
 (remembered by the browser).
 
-Each of Datos, Pila and Memoria has a ⧉ button that opens it in its own
-window, and **Juntos** shows the three side by side. All the windows
+Each of Datos, Pila, Memoria and Ficheros has a ⧉ button that opens it in its own
+window, and **Juntos** shows them side by side. All the windows
 follow the same run, and a variable picked in one is shown in Memoria in
 all of them.
 

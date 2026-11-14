@@ -104,6 +104,27 @@ def where_line(prog, pc):
 	return prog.lines[pc] if 0 <= pc < len(prog.lines) else 0
 
 
+MAXFILE = 65536		# characters of an input file sent to the page
+
+
+def input_files(vm):
+	"""Text files open for reading, with the read position."""
+	out = []
+	for k, f in enumerate(vm.files):
+		if f is None or f.mode != 'input':
+			continue
+		data = bytes(f.buf)
+		pos = f.pos
+		start = 0
+		if len(data) > MAXFILE:
+			start = max(0, min(pos - MAXFILE // 2, len(data) - MAXFILE))
+			data = data[start:start + MAXFILE]
+		out.append({'h': k, 'name': f.name, 'std': f.std == 'input', 'start': start,
+			'text': data.decode('latin-1'), 'pos': pos, 'size': len(f.buf),
+			'more': f.std == 'input' or len(f.buf) > start + len(data)})
+	return out
+
+
 def label_index(frames, globs, heap):
 	"""(address, type) -> (name, where) for every variable, field and
 	element that is not a var parameter, to say what one refers to.
@@ -250,6 +271,7 @@ def snapshot(vm, pc, fp, sp, pos, highwater=0):
 	top = fp + cur.framesize
 	return {
 		'line': pos[0], 'col': pos[1],
+		'files': input_files(vm),
 		'frames': frames,
 		'globals': globs,
 		'gslots': gslots,
@@ -279,6 +301,7 @@ def final_snapshot(vm, pos, highwater=0):
 			'a': addr, 's': size, 't': tn, 'g': False}
 		heap.append({'a': addr, 's': size, 't': tn, 'line': line, 'v': val})
 	return {'line': pos[0] if pos else 0, 'col': pos[1] if pos else 0, 'frames': [], 'globals': globs,
+		'files': input_files(vm),
 		'gslots': [{'a': addr, 's': t.size, 'n': name} for name, addr, t in prog.globals],
 		'heap': heap, 'final': True,
 		'regions': {'used': [0, max(vm.stack, highwater)], 'sp': vm.stack, 'stack': [vm.stack, vm.stack],
