@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Check pasc's warnings: for each tests/lint/X.p, every line of
-X.expected must appear in the warnings of 'pasc -w -c X.p', and
+X.expected must appear in the warnings of 'pasc -c X.p', and
 nothing else may be reported."""
 import os, subprocess, sys
 
@@ -11,7 +11,7 @@ fail = 0
 for f in sorted(os.listdir(LINT)):
 	if not f.endswith('.p'):
 		continue
-	r = subprocess.run([sys.executable, PASC, '-g', '-L', '-w', '-c', f], cwd=LINT, capture_output=True)
+	r = subprocess.run([sys.executable, PASC, '-g', '-L', '-c', f], cwd=LINT, capture_output=True)
 	got = [l for l in r.stderr.decode().splitlines() if 'warning:' in l]
 	want = [l for l in open(os.path.join(LINT, f[:-2] + '.expected')).read().splitlines() if l.strip()]
 	probs = ['missing: ' + w for w in want if not any(w in g for g in got)]

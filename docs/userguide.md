@@ -30,7 +30,7 @@ given to `halt`, or the number of the run-time error. Check it with
 | Option | Effect |
 |---|---|
 | `-c` | only compile (check) the program; do not run it |
-| `-w` | also report style warnings (section 5) |
+| `-w` | do not report style warnings (section 5) |
 | `-z` | uninitialised memory is zero instead of random |
 | `--seed N` | repeat the same random contents for uninitialised memory |
 | `-g` | allow global variables before procedures and functions |
@@ -100,7 +100,7 @@ course:
   ```
 
   These limits are set in `pasclib/limits.py`. `-L` turns them into
-  warnings, shown with `-w`.
+  style warnings.
 
 * **Anonymous types.** Every type used in a variable, a typed constant, a
   record field or an array element must have a name: declare it in a
@@ -231,13 +231,13 @@ An array or record passed by value that the procedure never changes is
 not copied. It behaves as a value parameter, but passing big arrays costs
 nothing and cannot overflow the stack.
 
-## 5. Style warnings (`-w`)
+## 5. Style warnings
 
-`pasc -w prog.p` adds warnings about style, the kind of thing a teacher
+pasc also reports warnings about style (unless run with `-w`), the kind of thing a teacher
 would point out. For example:
 
 ```
-$ pasc -w est.p
+$ pasc est.p
 est.p:4:2: warning: constant "max" should start with an uppercase letter
 est.p:6:1: warning: procedure "doble" only computes a value for var parameter "r": it should be a function
 est.p:13:2: warning: returning true or false from both branches of an if: return the condition instead
@@ -286,7 +286,7 @@ compiles the program (errors and warnings are reported as with pasc) and
 opens a page in the browser. pascdb is a small web server that runs only
 on your computer; it prints the address of the page in case the browser
 does not open by itself. The **Quit** button, or Ctrl+C in the terminal,
-ends it. Options: `-g` and `-L` as in pasc, `--port N` to use a fixed port, and
+ends it. Options: `-g`, `-L` and `-w` as in pasc, `--port N` to use a fixed port, and
 `--no-browser` to only print the address.
 
 The captures below use `docs/examples/lista.p`, which reads the words of

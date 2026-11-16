@@ -46,7 +46,7 @@ pasc prog.p              # Windows, using pasc.bat (needs the py launcher)
 pasc -c prog.p           # only compile (check) the program
 pasc -S prog.p           # print the bytecode
 pasc --stack 64 prog.p   # stack size in MB (default 16)
-pasc -w prog.p           # also report style warnings (see below)
+pasc -w prog.p           # do not report style warnings (see below)
 pasc -z prog.p           # uninitialised memory is zero, not random
 pasc -g prog.p           # allow global variables before procedures
 pasc -L prog.p           # do not enforce the limits on loops and nesting
@@ -110,7 +110,7 @@ These deliberately go beyond (or against) fpc, to help students learn:
   deep (an `else if` does not nest), or more than 6 `if` statements in a
   row (an `if ... else if ...` chain counts as one) does not compile. The
   numbers are in `pasclib/limits.py`, whose `enforced` entry lists which
-  limits are errors. `-L` (pasc and pascdb) turns them into `-w`
+  limits are errors. `-L` (pasc and pascdb) turns them into style
   warnings.
 * **Named types.** A type written in place (anonymous) in a variable, a
   typed constant, a record field or an array element is an error: declare
@@ -124,9 +124,9 @@ These deliberately go beyond (or against) fpc, to help students learn:
   never changes is passed by reference internally, so passing large data
   by value does not copy it (or overflow the stack).
 
-### Style warnings (`-w`)
+### Style warnings
 
-`-w` reports:
+pasc (and pascdb) report these style warnings unless run with `-w`:
 
 * lines that are too long;
 * procedure, function and main program bodies that are too long (the

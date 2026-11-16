@@ -63,7 +63,7 @@ Two rules shaped everything:
 | `pasclib/errors.py` | `CompileError`, `RunError`, `Halt`, FPC error names |
 | `pasclib/debug.py` | `stack()` output and the leak report |
 | `pasclib/indent.py` | indentation errors and the tabs warning |
-| `pasclib/lint.py` | style warnings (`pasc -w`) |
+| `pasclib/lint.py` | style warnings (on unless `-w`) |
 | `pasclib/limits.py` | the table of limits for the style warnings |
 | `pascdblib/server.py` | pascdb's HTTP server and the session driving the VM |
 | `pascdblib/snapshot.py` | JSON description of a paused VM |
@@ -85,7 +85,7 @@ prog.p --lexer--> tokens --parser--> AST --indent--> (indentation errors)
                                       |
                                       +--compiler--> code.Program --vm--> run
                                       |       (type check, bytecode, warnings)
-                                      +--lint (only with -w)--> style warnings
+                                      +--lint (unless -w)-----> style warnings
 ```
 
 `pasc.py` does, in `compile_file()` and `main()`:
@@ -94,7 +94,7 @@ prog.p --lexer--> tokens --parser--> AST --indent--> (indentation errors)
 2. `parse(src, fname)` (parser.py), which tokenizes and builds the AST;
 3. `compile_program(tree, fname, lint, debug, early_globals)`
    (compiler.py), which runs the indentation check, compiles, and, with
-   `-w`, runs the linter; it returns a `code.Program` with
+   `lint=True` (the default; `-w` turns it off), runs the linter; it returns a `code.Program` with
    `prog.warnings` sorted by position;
 4. print the warnings; with `-S` print `prog.disassemble()`; with `-c`
    stop;
@@ -367,7 +367,7 @@ mostly folded or open-coded with range checks.
   no I/O and a single `var` parameter whose every use is a whole
   assignment gets a warning.
 * **Function result not set**: warning, as in fpc.
-* **Naming style** (`check_name`, `check_case`): only with `-w`; they add
+* **Naming style** (`check_name`, `check_case`): only when style warnings are on; they add
   to `self.lints`.
 * **Typed constants**: read-only, and usable in constant expressions and
   types (fpc allows neither).
@@ -569,7 +569,7 @@ a file that also indents with tabs.
 
 ### 11.2 `pasclib/lint.py` and `limits.py`
 
-With `-w`, `lint_program(tree, prog)` runs a list of independent checks
+With `lint=True` (unless `-w`), `lint_program(tree, prog)` runs a list of independent checks
 over the tree and returns `(line, col, message)` triples:
 `lines_check` (line length), `size_check` and `body_check` (routine and
 body sizes, parameter count), `duplicates_check` (same normalised body),
@@ -585,7 +585,7 @@ The limits on loops and nesting (`structure_check()`, collected by
 `structure_findings()`) and the ban on anonymous types
 (`anonymous_types()`) are special: `compile_program()` turns the ones
 listed in `LIMITS['enforced']` into a `CompileError`, unless
-`enforce=False` (`-L` in pasc and pascdb); not enforced, they are `-w`
+`enforce=False` (`-L` in pasc and pascdb); not enforced, they are style
 warnings. The test suites pass `-L` so the course programs are compared
 with fpc whatever their structure, and `tests/extra/restr_*` cases check
 that each enforced limit rejects a program.
@@ -821,7 +821,7 @@ python3 packaging/smoke_pascdb.py python3 pascdb.py tests/features/stack1.p
   source's SHA-1, so CI runs without fpc; `-r` refreshes. `restr_*.p` are
   programs fpc accepts that pasc must reject; `ext_*.p` use pasc
   extensions and must print `X.out`; `err_*.p` are compile errors.
-* `lint_test.py` runs `pasc -w` on `tests/lint/X.p` and compares the
+* `lint_test.py` runs `pasc -c` on `tests/lint/X.p` and compares the
   warnings with `X.expected`.
 * `features_test.py` checks `stack()` output, the leak report, the seed
   and `-z`, and the file warnings.

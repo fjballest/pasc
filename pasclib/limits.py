@@ -1,4 +1,4 @@
-"""Limits for the style warnings that pasc -w reports.
+"""Limits for the style warnings that pasc reports (unless run with -w).
 
 This is the one place to tune them: change a number here, or set a check
 to None (or False) to turn it off.  The limits listed in 'enforced' are
@@ -17,7 +17,8 @@ LIMITS = {
 	# array should be used instead
 	'parameters': 6,
 	# limits enforced as compile errors (pasc -L and pascdb -L turn them
-	# into warnings shown with -w); the others are always warnings (-w)
+	# into style warnings); the others are always style warnings, which
+	# pasc and pascdb -w do not report
 	'enforced': ('loops', 'nested_loops', 'nested_structures', 'consecutive_ifs', 'named_types'),
 	# types written in place (anonymous) in variables, typed constants,
 	# record fields and array elements: declare them with a name (array

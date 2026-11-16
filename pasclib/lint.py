@@ -1,4 +1,4 @@
-"""Style checks reported by pasc -w (see limits.py for the limits).
+"""Style checks reported by pasc unless -w (see limits.py for the limits).
 
 Naming checks need the symbol tables and live in compiler.py; this module
 checks the program text and its structure: long lines, long bodies,

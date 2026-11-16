@@ -11,7 +11,7 @@ number after reporting it.
 
 Uninitialised memory holds random garbage (-z: zeros, as fpc gives for
 global variables).  When the program ends, memory allocated with new and
-never disposed is reported.  -w adds style warnings; their limits are in
+never disposed is reported.  Style warnings are reported unless -w; their limits are in
 pasclib/limits.py.
 """
 
@@ -31,7 +31,7 @@ def usage():
 	sys.stderr.write('usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [--seed N] [--stack MB] prog.p\n'
 		'  -c          only compile (check) the program\n'
 		'  -S          print the bytecode\n'
-		'  -w          also report style warnings (limits in pasclib/limits.py)\n'
+		'  -w          do not report style warnings (limits in pasclib/limits.py)\n'
 		'  -z          uninitialised memory is zero instead of random\n'
 		'  -g          allow global variables before procedures and functions\n'
 		'  -L          do not enforce the limits on loops and nesting (see limits.py)\n'
@@ -65,7 +65,7 @@ def main(argv):
 	only_check = False
 	dump = False
 	stack = vm.DEFAULT_STACK
-	lint = False
+	lint = True
 	early_globals = False
 	enforce = True
 	randomize = True
@@ -82,7 +82,7 @@ def main(argv):
 		elif a == '-S':
 			dump = True
 		elif a == '-w':
-			lint = True
+			lint = False
 		elif a == '-g':
 			early_globals = True
 		elif a == '-L':

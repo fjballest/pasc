@@ -76,7 +76,7 @@ class Compiler:
 		self.early_globals = early_globals	# -g: globals before routines
 		self.debug = debug		# emit LINE instructions for pascdb
 		self.lint = lint
-		self.lints = []			# style warnings (pasc -w)
+		self.lints = []			# style warnings (off with pasc -w)
 		self.casewarned = set()
 		self.prog = C.Program(fname)
 		self.nlabels = 0
