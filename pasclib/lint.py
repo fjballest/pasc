@@ -28,6 +28,7 @@ def lint_program(tree, prog):
 			begin_end_check(body, found)
 		if LIMITS.get('search_loop'):
 			search_loop_check(body, found)
+	layout_check(tree, found)
 	types = global_types(tree)
 	for r in routines:
 		array_param_checks(r, types, found)
@@ -60,6 +61,12 @@ def is_bool_set(st):
 	return isinstance(st, A.Assign) and bool_lit(st.expr) is not None
 
 
+def indexed(e):
+	while isinstance(e, (A.Field, A.Deref)):
+		e = e.base
+	return isinstance(e, A.Index)
+
+
 def search_loop_check(body, found):
 	for st in all_stmts(body):
 		if not isinstance(st, (A.For, A.ForIn)):
@@ -70,7 +77,10 @@ def search_loop_check(body, found):
 		then = b.then
 		stmts = [x for x in (then.stmts if isinstance(then, A.Compound) else [then])
 			if not isinstance(x, A.Empty)]
-		if stmts and all(isinstance(x, A.Assign) for x in stmts) and any(is_bool_set(x) for x in stmts):
+		# a flag set when something is found; setting an element of an
+		# array (marking it) is not a search
+		flags = [x for x in stmts if is_bool_set(x) and not indexed(x.target)]
+		if stmts and all(isinstance(x, A.Assign) for x in stmts) and flags:
 			found.append((st.line, st.col, 'this loop goes on after finding what it looks for: '
 				'use while or repeat and stop when it is found'))
 
@@ -478,3 +488,24 @@ def structure_check(body, what, pos, found):
 						found.append((run[0].line, run[0].col, '%d if statements in a row (the limit is %d): '
 							'use if ... else if ..., a case, or a procedure' % (len(run), max_ifs), 'consecutive_ifs'))
 					run = []
+
+
+def layout_check(tree, found):
+	"""Where begin, end and else go: 'end' and 'else' on different lines
+	(else right under the end), begin and end of a block on different
+	lines (a case branch may be a short begin ... end on one line), and
+	begin at the end of the line of its then, do or else (a
+	case branch may have begin on a line of its own)."""
+	toks = tree.tokens
+	kw = lambda t, *w: t.kind == 'kw' and t.value in w
+	for i in range(1, len(toks)):
+		t, prev = toks[i], toks[i - 1]
+		if LIMITS.get('else_own_line') and kw(t, 'else') and kw(prev, 'end') and t.line == prev.line:
+			found.append((t.line, t.col, 'write else on its own line, right under the end'))
+		if LIMITS.get('begin_same_line') and kw(t, 'begin') and kw(prev, 'then', 'do', 'else') \
+				and t.line != prev.line:
+			found.append((t.line, t.col, 'write begin at the end of the line of its %s' % prev.value))
+	if LIMITS.get('begin_end_lines'):
+		for n, parent in walk(tree):
+			if isinstance(n, A.Compound) and n.line == n.endline and not isinstance(parent, A.Case):
+				found.append((n.line, n.col, 'write begin and end on different lines'))

@@ -233,6 +233,10 @@ The checks are:
 * `if c then x := true else x := false`, which should be `x := c`;
 * bodies of `if`, `else`, `while` and `for` not written between `begin`
   and `end`;
+* `end else` on one line: `else` goes on its own line, right under the
+  `end`; `begin` and `end` of a block on the same line (allowed only for
+  the statements of a `case` branch); `begin` on a line of its own after
+  `then`, `do` or `else` (it goes at the end of that line);
 * a `for` loop that searches for something and keeps going after finding
   it (it should be a `while` or a `repeat`);
 * a routine that takes an array and an index used only as `a[i]` (pass

@@ -1,0 +1,3 @@
+disposicion.p:9:6: warning: write else on its own line, right under the end
+disposicion.p:12:16: warning: write begin and end on different lines
+disposicion.p:14:2: warning: write begin at the end of the line of its do

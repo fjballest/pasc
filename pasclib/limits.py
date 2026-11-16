@@ -43,6 +43,14 @@ LIMITS = {
 	'boolean_compare': True,
 	# if/while/for bodies must be written between begin and end
 	'begin_end': True,
+	# 'end else' on one line: else goes on its own line, under the end
+	'else_own_line': True,
+	# begin ... end of a block written on a single line (allowed for the
+	# statements of a case branch)
+	'begin_end_lines': True,
+	# begin on a line of its own after then, do or else (it goes at the
+	# end of that line; a case branch may have begin on its own line)
+	'begin_same_line': True,
 	# for loop that sets a boolean when it finds something but keeps going
 	'search_loop': True,
 	# routine taking an array and an index used only as a[i]: pass a[i]

@@ -45,17 +45,23 @@ procedure cadena(x: integer);
 begin
 	if x = 1 then begin
 		writeln(1);
-	end else if x = 2 then begin
+	end
+	else if x = 2 then begin
 		writeln(2);
-	end else if x = 3 then begin
+	end
+	else if x = 3 then begin
 		writeln(3);
-	end else if x = 4 then begin
+	end
+	else if x = 4 then begin
 		writeln(4);
-	end else if x = 5 then begin
+	end
+	else if x = 5 then begin
 		writeln(5);
-	end else if x = 6 then begin
+	end
+	else if x = 6 then begin
 		writeln(6);
-	end else if x = 7 then begin
+	end
+	else if x = 7 then begin
 		writeln(7);
 	end;
 end;

@@ -136,6 +136,10 @@ These deliberately go beyond (or against) fpc, to help students learn:
   assign or return `c` or `not c` directly;
 * bodies of `if`, `else`, `while` and `for` not written between `begin` and
   `end`;
+* `end else` on one line (`else` goes on its own line, right under the
+  `end`), `begin` and `end` of a block on the same line (except the
+  statements of a `case` branch), and `begin` on a line of its own after
+  `then`, `do` or `else` (it goes at the end of that line);
 * a `for` loop that sets a boolean when it finds something but keeps going
   (it should be a `while` or `repeat` that stops);
 * a routine taking an array and an index used only as `a[i]` (pass the
