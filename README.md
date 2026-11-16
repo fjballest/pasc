@@ -262,7 +262,8 @@ pasc implements only what the course programs use:
   procedures and functions with value and `var` parameters, and `result`
   or the function name to set the result.
 * Statements: assignment, `if`, `case` (with ranges, `else`/`otherwise`,
-  and string selectors), `while`, `repeat`, `for ... to/downto`,
+  string selectors and, unlike Pascal, several statements in a branch
+  without `begin`/`end`), `while`, `repeat`, `for ... to/downto`,
   `for ... in` over an ordinal type, compound statements, and procedure
   calls.
 * Operators: `+ - * / div mod and or xor not shl shr = <> < > <= >= @ ^`.

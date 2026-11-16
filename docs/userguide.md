@@ -115,6 +115,20 @@ course:
   This rule is listed with the other enforced limits in
   `pasclib/limits.py` (`named_types`), and `-L` turns it into a warning.
 
+Unlike standard Pascal, a `case` branch may have several statements
+without `begin` and `end`; they go on until the next label, `else` or
+`end`, and are indented under their label:
+
+```
+case c of
+Rojo:
+	writeln('rojo');
+	n := n + 1;
+Verde, Azul:
+	writeln('otro');
+end;
+```
+
 The standard functions of Pascal are available: `abs`, `sqr`, `sqrt`,
 `sin`, `cos`, `arctan`, `exp`, `ln`, `frac`, `int`, `trunc`, `round`,
 `odd`, `pi`, `random` (with no argument, a real in [0, 1); `random(n)`,

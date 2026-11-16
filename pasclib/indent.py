@@ -69,6 +69,12 @@ class Indent:
 			return
 		base = self.indent(ownerline)
 		t = self.tok(st.tok0)
+		if isinstance(st, A.Compound) and getattr(st, 'bare', False):
+			# several statements in a case branch, without begin/end
+			self.check_list(st.stmts, base, what)
+			for s in st.stmts:
+				self.stmt(s)
+			return
 		if isinstance(st, A.Compound):
 			# 'begin' may end the owner line (even a continuation line of a
 			# long condition) or start a line of its own
@@ -102,7 +108,10 @@ class Indent:
 		return None
 
 	def stmt(self, st):
-		if isinstance(st, A.Compound):
+		if isinstance(st, A.Compound) and getattr(st, 'bare', False):
+			for s in st.stmts:		# a case branch without begin/end
+				self.stmt(s)
+		elif isinstance(st, A.Compound):
 			self.compound(st)
 		elif isinstance(st, A.If):
 			line = self.tok(st.tok0).line

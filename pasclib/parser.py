@@ -462,7 +462,7 @@ class Parser:
 					break
 				self.next()
 			self.expect_sym(':')
-			st = self.parse_stmt()
+			st = self.parse_branch()
 			branches.append((labels, st))
 			if not self.is_sym(';'):
 				break
@@ -474,6 +474,45 @@ class Parser:
 		if not branches:
 			self.error('Syntax error, "constant" expected but "%s" found' % self.tok.desc())
 		return A.Case(p, e, branches, else_)
+
+	def parse_branch(self):
+		"""The statements of a case branch.  Unlike Pascal, several
+		statements need no begin/end: they go on until the next label,
+		else, otherwise or end.  They are kept as a Compound marked bare."""
+		stmts = [self.parse_stmt()]
+		while self.is_sym(';') and not self.branch_ends(1):
+			self.next()
+			stmts.append(self.parse_stmt())
+		if len(stmts) == 1:
+			return stmts[0]
+		c = A.Compound((stmts[0].line, stmts[0].col), stmts)
+		c.tok0, c.tok1 = stmts[0].tok0, stmts[-1].tok1
+		c.endline = self.toks[c.tok1 - 1].line
+		c.bare = True
+		return c
+
+	def branch_ends(self, k):
+		"""Does the token k places ahead end a case branch?  It does if it
+		is end, else or otherwise, or starts a label list: constants,
+		ranges and commas up to a ':' (there are no goto labels, so a
+		statement never looks like that)."""
+		t = self.peek(k)
+		if (t.kind == 'kw' and t.value in ('end', 'else')) or (t.kind == 'id' and t.value == 'otherwise'):
+			return True
+		depth = 0
+		while True:
+			if t.kind == 'sym' and t.value == ':' and depth == 0:
+				return True
+			if t.kind == 'sym' and t.value == '(':
+				depth += 1
+			elif t.kind == 'sym' and t.value == ')':
+				depth -= 1
+			elif t.kind == 'sym' and t.value in (',', '..', '+', '-', '*', ':') or t.kind in ('int', 'str', 'id'):
+				pass
+			elif not (t.kind == 'kw' and t.value in ('div', 'mod', 'not', 'nil')):
+				return False
+			k += 1
+			t = self.peek(k)
 
 	# expressions
 	def parse_designator(self):

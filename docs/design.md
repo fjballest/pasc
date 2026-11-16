@@ -144,6 +144,13 @@ checker and pascdb, such as `endline` on compound statements and
 `endpos` on the program. The node list in `ast.py` is short and
 readable: it is the best summary of the language pasc accepts.
 
+A `case` branch may hold several statements without `begin`/`end`
+(`parse_branch()`): they end at `end`, `else`, `otherwise` or the start
+of the next label list, which `branch_ends()` recognises by scanning
+constants, ranges and commas up to a `:` (there are no goto labels, so
+no statement looks like that). They are kept as a `Compound` with
+`bare = True`, which `indent.py` checks as a list under the label.
+
 Things the parser rejects directly (because they are outside the subset)
 produce errors there: nested routines, open array and `const` parameters,
 procedure directives, variant records, dynamic arrays, sets, unsupported
