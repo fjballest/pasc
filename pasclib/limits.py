@@ -1,7 +1,8 @@
 """Limits for the style warnings that pasc -w reports.
 
 This is the one place to tune them: change a number here, or set a check
-to None (or False) to turn it off.
+to None (or False) to turn it off.  The limits listed in 'enforced' are
+compile errors instead of warnings, unless pasc (or pascdb) is run with -L.
 """
 
 LIMITS = {
@@ -15,6 +16,9 @@ LIMITS = {
 	# parameters of a procedure or function: more suggests a record or an
 	# array should be used instead
 	'parameters': 6,
+	# limits enforced as compile errors (pasc -L and pascdb -L turn them
+	# into warnings shown with -w); the others are always warnings (-w)
+	'enforced': ('loops', 'nested_loops', 'nested_structures', 'consecutive_ifs'),
 	# loops (while, repeat, for) in one procedure, function or main program
 	'loops': 4,
 	# loops nested inside loops

@@ -49,6 +49,7 @@ pasc --stack 64 prog.p   # stack size in MB (default 16)
 pasc -w prog.p           # also report style warnings (see below)
 pasc -z prog.p           # uninitialised memory is zero, not random
 pasc -g prog.p           # allow global variables before procedures
+pasc -L prog.p           # do not enforce the limits on loops and nesting
 pasc --seed 7 prog.p     # repeatable random contents for uninitialised memory
 ```
 
@@ -103,6 +104,14 @@ These deliberately go beyond (or against) fpc, to help students learn:
   start at the same column, and `end`, `else` and `until` line up with the
   line that opened them (tabs count as 8 columns). Indenting with spaces
   in a file that also uses tabs gets a warning suggesting tabs.
+* **Limits on loops and nesting.** A procedure, function or main program
+  with more than 4 loops, loops nested more than 2 deep, control
+  structures (`if`, `case`, `while`, `repeat`, `for`) nested more than 6
+  deep (an `else if` does not nest), or more than 6 `if` statements in a
+  row (an `if ... else if ...` chain counts as one) does not compile. The
+  numbers are in `pasclib/limits.py`, whose `enforced` entry lists which
+  limits are errors. `-L` (pasc and pascdb) turns them into `-w`
+  warnings.
 * **Files.** When the program ends, files still open are reported, and so
   is opening the same file a second time.
 * **Big parameters.** An array or record value parameter that the routine
@@ -117,11 +126,6 @@ These deliberately go beyond (or against) fpc, to help students learn:
 * procedure, function and main program bodies that are too long (the
   problem is not split into subproblems);
 * routines with too many parameters (records or arrays would be better);
-* more than 4 loops in a procedure, function or the main program, loops
-  nested more than 2 deep, control structures (`if`, `case`, `while`,
-  `repeat`, `for`) nested more than 6 deep (an `else if` does not nest),
-  and more than 6 `if` statements in a row (an `if ... else if ...` chain
-  counts as one);
 * two routines with the same body, up to the names of their parameters and
   locals;
 * the same statement, or group of statements, written several times in a

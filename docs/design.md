@@ -567,11 +567,19 @@ over the tree and returns `(line, col, message)` triples:
 `lines_check` (line length), `size_check` and `body_check` (routine and
 body sizes, parameter count), `duplicates_check` (same normalised body),
 `repeat_check` (repeated statements or groups), `boolean_if_check`,
-`begin_end_check`, `search_loop_check`, `structure_check` (number of
-loops, nesting of loops and of control structures, ifs in a row; an
-`else if` continues its `if` instead of nesting) and `array_param_checks`
-(array plus index, array plus count). `walk()` iterates over every node with its
+`begin_end_check`, `search_loop_check` and `array_param_checks` (array
+plus index, array plus count). `structure_check` (number of loops,
+nesting of loops and of control structures, ifs in a row; an `else if`
+continues its `if` instead of nesting) is described below. `walk()` iterates over every node with its
 parent.
+
+The limits on loops and nesting (`structure_check()`, collected by
+`structure_findings()`) are special: `compile_program()` turns the ones
+listed in `LIMITS['enforced']` into a `CompileError`, unless
+`enforce=False` (`-L` in pasc and pascdb); not enforced, they are `-w`
+warnings. The test suites pass `-L` so the course programs are compared
+with fpc whatever their structure, and `tests/extra/restr_*` cases check
+that each enforced limit rejects a program.
 
 Every threshold and on/off switch is in `LIMITS` (`limits.py`). A check
 reads its entry with `LIMITS.get(name)` and does nothing when it is

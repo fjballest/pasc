@@ -5,7 +5,7 @@ usage: smoke_pascdb.py PASCDB-COMMAND... prog.p"""
 import json, re, subprocess, sys, time, urllib.request
 
 cmd = sys.argv[1:]
-p = subprocess.Popen(cmd[:-1] + ['--no-browser', '-g', cmd[-1]], stdout=subprocess.PIPE, text=True)
+p = subprocess.Popen(cmd[:-1] + ['--no-browser', '-g', '-L', cmd[-1]], stdout=subprocess.PIPE, text=True)
 try:
 	url = None
 	for line in p.stdout:

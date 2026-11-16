@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pasc: run a program written in the course's restricted Free Pascal.
 
-usage: pasc [-c] [-S] [-w] [-z] [-g] [--seed N] [--stack MB] prog.p
+usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [--seed N] [--stack MB] prog.p
 
 The program is compiled to an in-memory bytecode (errors are reported as
 file:line:col) and then executed.  It behaves like the program built with
@@ -28,19 +28,20 @@ from pasclib import VERSION				# noqa: E402
 
 
 def usage():
-	sys.stderr.write('usage: pasc [-c] [-S] [-w] [-z] [--seed N] [--stack MB] prog.p\n'
+	sys.stderr.write('usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [--seed N] [--stack MB] prog.p\n'
 		'  -c          only compile (check) the program\n'
 		'  -S          print the bytecode\n'
 		'  -w          also report style warnings (limits in pasclib/limits.py)\n'
 		'  -z          uninitialised memory is zero instead of random\n'
 		'  -g          allow global variables before procedures and functions\n'
+		'  -L          do not enforce the limits on loops and nesting (see limits.py)\n'
 		'  --seed N    seed for the random contents of uninitialised memory\n'
 		'  --stack MB  stack size in megabytes (default %d)\n'
 		'  --version   print the version\n' % (vm.DEFAULT_STACK >> 20))
 	sys.exit(2)
 
 
-def compile_file(path, lint=False, early_globals=False):
+def compile_file(path, lint=False, early_globals=False, enforce=True):
 	"""Return the compiled program, or exit after printing the errors."""
 	fname = os.path.basename(path) if os.path.dirname(path) in ('', '.') else path
 	try:
@@ -51,7 +52,7 @@ def compile_file(path, lint=False, early_globals=False):
 		sys.exit(1)
 	try:
 		tree = parse(src, fname)
-		prog = compile_program(tree, fname, lint, early_globals=early_globals)
+		prog = compile_program(tree, fname, lint, early_globals=early_globals, enforce=enforce)
 	except CompileError as e:
 		sys.stderr.write('%s\n' % e)
 		sys.exit(1)
@@ -66,6 +67,7 @@ def main(argv):
 	stack = vm.DEFAULT_STACK
 	lint = False
 	early_globals = False
+	enforce = True
 	randomize = True
 	seed = None
 	files = []
@@ -83,6 +85,8 @@ def main(argv):
 			lint = True
 		elif a == '-g':
 			early_globals = True
+		elif a == '-L':
+			enforce = False
 		elif a == '-z':
 			randomize = False
 		elif a == '--seed' and i + 1 < len(argv):
@@ -104,7 +108,7 @@ def main(argv):
 		i += 1
 	if len(files) != 1:
 		usage()
-	prog = compile_file(files[0], lint, early_globals)
+	prog = compile_file(files[0], lint, early_globals, enforce)
 	if dump:
 		print(prog.disassemble())
 	if only_check or dump:

@@ -1955,15 +1955,22 @@ class _Void(T.Type):
 VOID = _Void()
 
 
-def compile_program(tree, fname, lint=False, debug=False, early_globals=False):
+def compile_program(tree, fname, lint=False, debug=False, early_globals=False, enforce=True):
 	from .indent import check_indentation
+	from .lint import structure_findings
 	iwarn = check_indentation(tree, fname)
 	c = Compiler(fname, lint, debug, early_globals)
 	prog = c.program(tree)
 	prog.warnings[:0] = iwarn
+	# limits on loops and nesting: errors when enforced (see limits.py)
+	enforced = (LIMITS.get('enforced') or ()) if enforce else ()
+	limits = sorted(structure_findings(tree))
+	for line, col, msg, key in limits:
+		if key in enforced:
+			raise CompileError(fname, line, col, msg + ' (-L allows it)')
 	if lint:
 		from .lint import lint_program
-		found = c.lints + lint_program(tree, prog)
+		found = c.lints + lint_program(tree, prog) + [x[:3] for x in limits]
 		for line, col, msg in sorted(found):
 			prog.warnings.append('%s:%d:%d: warning: %s' % (fname, line, col, msg))
 

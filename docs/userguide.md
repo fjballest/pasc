@@ -34,6 +34,7 @@ given to `halt`, or the number of the run-time error. Check it with
 | `-z` | uninitialised memory is zero instead of random |
 | `--seed N` | repeat the same random contents for uninitialised memory |
 | `-g` | allow global variables before procedures and functions |
+| `-L` | do not enforce the limits on loops and nesting (section 2) |
 | `-S` | print the bytecode the program compiles to |
 | `--stack MB` | stack size in megabytes (default 16) |
 | `--version` | print the version |
@@ -86,6 +87,20 @@ course:
   ```
   glob.p:4:2: error: global variables must be declared after all procedures and functions, just before the main program (pasc -g allows them earlier)
   ```
+
+* **Too many loops or too much nesting.** In each procedure, function and
+  the main program: at most 4 loops, loops nested at most 2 deep, control
+  structures (`if`, `case`, `while`, `repeat`, `for`) nested at most 6
+  deep (an `else if` does not count as nesting), and at most 6 `if`
+  statements in a row (an `if ... else if ...` chain counts as one).
+  Move the inner part to a procedure or function.
+
+  ```
+  bucles.p:8:4: error: loops nested 3 deep in the main program (the limit is 2): move the inner loop to a procedure or function (-L allows it)
+  ```
+
+  These limits are set in `pasclib/limits.py`. `-L` turns them into
+  warnings, shown with `-w`.
 
 The standard functions of Pascal are available: `abs`, `sqr`, `sqrt`,
 `sin`, `cos`, `arctan`, `exp`, `ln`, `frac`, `int`, `trunc`, `round`,
@@ -211,12 +226,6 @@ The checks are:
 * lines longer than 100 columns;
 * procedure, function or main program bodies longer than 40 lines;
 * more than 6 parameters;
-* more than 4 loops in a procedure, function or the main program;
-* loops nested more than 2 deep, and control structures (`if`, `case`,
-  `while`, `repeat`, `for`) nested more than 6 deep; an `else if` does
-  not count as nesting;
-* more than 6 `if` statements in a row (an `if ... else if ...` chain
-  counts as one);
 * two routines with the same body (up to the names of their variables);
 * the same statement or group of statements repeated several times in a
   row, perhaps instead of a loop or a procedure;
@@ -246,7 +255,7 @@ compiles the program (errors and warnings are reported as with pasc) and
 opens a page in the browser. pascdb is a small web server that runs only
 on your computer; it prints the address of the page in case the browser
 does not open by itself. The **Quit** button, or Ctrl+C in the terminal,
-ends it. Options: `-g` as in pasc, `--port N` to use a fixed port, and
+ends it. Options: `-g` and `-L` as in pasc, `--port N` to use a fixed port, and
 `--no-browser` to only print the address.
 
 The captures below use `docs/examples/lista.p`, which reads the words of
