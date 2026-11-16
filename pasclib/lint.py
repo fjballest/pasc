@@ -509,3 +509,53 @@ def layout_check(tree, found):
 		for n, parent in walk(tree):
 			if isinstance(n, A.Compound) and n.line == n.endline and not isinstance(parent, A.Case):
 				found.append((n.line, n.col, 'write begin and end on different lines'))
+
+
+# anonymous types
+
+KINDS = {A.TArray: 'array', A.TRecord: 'record', A.TSubrange: 'subrange',
+	A.TEnum: 'enumeration', A.TPointer: 'pointer', A.TString: 'string[n]'}
+
+
+def named(t):
+	return isinstance(t, A.TName) or (isinstance(t, A.TString) and t.size is None)
+
+
+def anonymous_types(tree):
+	"""(line, col, message, 'named_types') for every type written in
+	place instead of declared with a name: in a variable or typed
+	constant, a record field or an array element.  Subranges may be
+	written in place as array indexes."""
+	found = []
+	if not LIMITS.get('named_types'):
+		return found
+
+	def anon(t):
+		found.append((t.line, t.col, 'declare a type for this %s and use its name '
+			'(anonymous types are not allowed)' % KINDS.get(type(t), 'type'), 'named_types'))
+
+	def inside(t):
+		if isinstance(t, A.TArray):
+			for ix in t.indexes:
+				if not (named(ix) or isinstance(ix, A.TSubrange)):
+					anon(ix)
+			if not named(t.elem):
+				anon(t.elem)
+		elif isinstance(t, A.TRecord):
+			for names, ft in t.fields:
+				if not named(ft):
+					anon(ft)
+
+	def decls(ds):
+		for d in ds:
+			if isinstance(d, list):		# a type section
+				decls(d)
+			elif isinstance(d, A.TypeDecl):
+				inside(d.typ)
+			elif isinstance(d, (A.VarDecl, A.ConstDecl)) and d.typ is not None and not named(d.typ):
+				anon(d.typ)
+			elif isinstance(d, A.Routine):
+				decls(d.decls)
+
+	decls(tree.decls)
+	return found

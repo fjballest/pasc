@@ -1957,14 +1957,14 @@ VOID = _Void()
 
 def compile_program(tree, fname, lint=False, debug=False, early_globals=False, enforce=True):
 	from .indent import check_indentation
-	from .lint import structure_findings
+	from .lint import structure_findings, anonymous_types
 	iwarn = check_indentation(tree, fname)
 	c = Compiler(fname, lint, debug, early_globals)
 	prog = c.program(tree)
 	prog.warnings[:0] = iwarn
 	# limits on loops and nesting: errors when enforced (see limits.py)
 	enforced = (LIMITS.get('enforced') or ()) if enforce else ()
-	limits = sorted(structure_findings(tree))
+	limits = sorted(structure_findings(tree) + anonymous_types(tree))
 	for line, col, msg, key in limits:
 		if key in enforced:
 			raise CompileError(fname, line, col, msg + ' (-L allows it)')

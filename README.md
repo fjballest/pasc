@@ -112,6 +112,11 @@ These deliberately go beyond (or against) fpc, to help students learn:
   numbers are in `pasclib/limits.py`, whose `enforced` entry lists which
   limits are errors. `-L` (pasc and pascdb) turns them into `-w`
   warnings.
+* **Named types.** A type written in place (anonymous) in a variable, a
+  typed constant, a record field or an array element is an error: declare
+  it with a name (`TipoNums = array[1..N] of integer;`) and use the name.
+  Array indexes may be subranges written in place. This is an enforced
+  limit too (`named_types` in `limits.py`; `-L` makes it a warning).
 * **Files.** When the program ends, files still open are reported, and so
   is opening the same file a second time.
 * **Big parameters.** An array or record value parameter that the routine

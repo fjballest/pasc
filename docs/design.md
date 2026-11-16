@@ -575,7 +575,8 @@ continues its `if` instead of nesting) is described below. `walk()` iterates ove
 parent.
 
 The limits on loops and nesting (`structure_check()`, collected by
-`structure_findings()`) are special: `compile_program()` turns the ones
+`structure_findings()`) and the ban on anonymous types
+(`anonymous_types()`) are special: `compile_program()` turns the ones
 listed in `LIMITS['enforced']` into a `CompileError`, unless
 `enforce=False` (`-L` in pasc and pascdb); not enforced, they are `-w`
 warnings. The test suites pass `-L` so the course programs are compared

@@ -102,6 +102,18 @@ course:
   These limits are set in `pasclib/limits.py`. `-L` turns them into
   warnings, shown with `-w`.
 
+* **Anonymous types.** Every type used in a variable, a typed constant, a
+  record field or an array element must have a name: declare it in a
+  `type` section and use the name. Array indexes may be subranges
+  written in place (`array[1..N] of TipoNum`).
+
+  ```
+  tipos.p:23:10: error: declare a type for this array and use its name (anonymous types are not allowed) (-L allows it)
+  ```
+
+  This rule is listed with the other enforced limits in
+  `pasclib/limits.py` (`named_types`), and `-L` turns it into a warning.
+
 The standard functions of Pascal are available: `abs`, `sqr`, `sqrt`,
 `sin`, `cos`, `arctan`, `exp`, `ln`, `frac`, `int`, `trunc`, `round`,
 `odd`, `pi`, `random` (with no argument, a real in [0, 1); `random(n)`,
