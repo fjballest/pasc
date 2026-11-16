@@ -28,6 +28,9 @@ def lint_program(tree, prog):
 			begin_end_check(body, found)
 		if LIMITS.get('search_loop'):
 			search_loop_check(body, found)
+	for r in routines:
+		structure_check(r.body, kind_name(r), r.pos, found)
+	structure_check(tree.body, 'the main program', tree.body.pos, found)
 	types = global_types(tree)
 	for r in routines:
 		array_param_checks(r, types, found)
@@ -400,3 +403,68 @@ def repeat_check(tokens, body, found):
 					step = reps * k
 					break
 			i += step
+
+
+# loops and nesting
+
+LOOPS = (A.While, A.Repeat, A.For, A.ForIn)
+CONTROL = LOOPS + (A.If, A.Case)
+
+
+def children(st):
+	"""The statements directly inside st, and whether each is an 'else
+	if' (which continues st instead of nesting in it)."""
+	if isinstance(st, (A.Compound, A.Repeat)):
+		return [(s, False) for s in st.stmts]
+	if isinstance(st, A.If):
+		out = [(st.then, False)]
+		if st.else_ is not None:
+			out.append((st.else_, isinstance(st.else_, A.If)))
+		return out
+	if isinstance(st, (A.While, A.For, A.ForIn)):
+		return [(st.body, False)]
+	if isinstance(st, A.Case):
+		return [(s, False) for labels, s in st.branches] + [(s, False) for s in st.else_ or []]
+	return []
+
+
+def structure_check(body, what, pos, found):
+	"""Too many loops, loops nested too deep, control structures nested
+	too deep and too many ifs in a row, in one routine or the main program."""
+	max_loops = LIMITS.get('loops')
+	max_loop_depth = LIMITS.get('nested_loops')
+	max_depth = LIMITS.get('nested_structures')
+	max_ifs = LIMITS.get('consecutive_ifs')
+	loops = []
+
+	def visit(st, depth, ldepth):
+		if isinstance(st, CONTROL):
+			depth += 1
+			if max_depth and depth == max_depth + 1:
+				found.append((st.line, st.col, 'control structures nested %d deep in %s (the limit is %d): '
+					'move the inner part to a procedure or function' % (depth, what, max_depth)))
+		if isinstance(st, LOOPS):
+			loops.append(st)
+			ldepth += 1
+			if max_loop_depth and ldepth == max_loop_depth + 1:
+				found.append((st.line, st.col, 'loops nested %d deep in %s (the limit is %d): '
+					'move the inner loop to a procedure or function' % (ldepth, what, max_loop_depth)))
+		for c, continues in children(st):
+			visit(c, depth - 1 if continues else depth, ldepth)
+
+	visit(body, 0, 0)
+	if max_loops and len(loops) > max_loops:
+		found.append((pos[0], pos[1], '%s has %d loops (the limit is %d): '
+			'split the problem into subproblems' % (what, len(loops), max_loops)))
+	if max_ifs:
+		for stmts in stmt_lists(body):
+			run = []
+			for st in stmts + [None]:
+				if isinstance(st, A.If):
+					run.append(st)
+					continue
+				if not isinstance(st, A.Empty):
+					if len(run) > max_ifs:
+						found.append((run[0].line, run[0].col, '%d if statements in a row (the limit is %d): '
+							'use if ... else if ..., a case, or a procedure' % (len(run), max_ifs)))
+					run = []

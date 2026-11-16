@@ -117,6 +117,11 @@ These deliberately go beyond (or against) fpc, to help students learn:
 * procedure, function and main program bodies that are too long (the
   problem is not split into subproblems);
 * routines with too many parameters (records or arrays would be better);
+* more than 4 loops in a procedure, function or the main program, loops
+  nested more than 2 deep, control structures (`if`, `case`, `while`,
+  `repeat`, `for`) nested more than 6 deep (an `else if` does not nest),
+  and more than 6 `if` statements in a row (an `if ... else if ...` chain
+  counts as one);
 * two routines with the same body, up to the names of their parameters and
   locals;
 * the same statement, or group of statements, written several times in a

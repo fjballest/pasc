@@ -211,6 +211,12 @@ The checks are:
 * lines longer than 100 columns;
 * procedure, function or main program bodies longer than 40 lines;
 * more than 6 parameters;
+* more than 4 loops in a procedure, function or the main program;
+* loops nested more than 2 deep, and control structures (`if`, `case`,
+  `while`, `repeat`, `for`) nested more than 6 deep; an `else if` does
+  not count as nesting;
+* more than 6 `if` statements in a row (an `if ... else if ...` chain
+  counts as one);
 * two routines with the same body (up to the names of their variables);
 * the same statement or group of statements repeated several times in a
   row, perhaps instead of a loop or a procedure;

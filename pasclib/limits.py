@@ -15,6 +15,15 @@ LIMITS = {
 	# parameters of a procedure or function: more suggests a record or an
 	# array should be used instead
 	'parameters': 6,
+	# loops (while, repeat, for) in one procedure, function or main program
+	'loops': 4,
+	# loops nested inside loops
+	'nested_loops': 2,
+	# control structures (if, case, while, repeat, for) nested inside
+	# each other; an 'else if' does not nest
+	'nested_structures': 6,
+	# if statements in a row (an if ... else if ... chain counts as one)
+	'consecutive_ifs': 6,
 	# two routines whose bodies are the same (up to the names of their
 	# parameters and locals) and have at least this many tokens
 	'duplicate_min_tokens': 12,

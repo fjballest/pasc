@@ -1,0 +1,5 @@
+estructura.p:3:1: warning: procedure "muchos" has 5 loops (the limit is 4): split the problem into subproblems
+estructura.p:9:4: warning: loops nested 3 deep in procedure "muchos" (the limit is 2): move the inner loop to a procedure or function
+estructura.p:32:9: warning: control structures nested 7 deep in procedure "anidados" (the limit is 6): move the inner part to a procedure or function
+estructura.p:65:2: warning: 7 if statements in a row (the limit is 6): use if ... else if ..., a case, or a procedure
+estructura.p:65:2: warning: the same statement is written 7 times in a row: use a loop or a procedure
