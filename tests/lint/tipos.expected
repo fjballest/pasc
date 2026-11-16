@@ -2,7 +2,6 @@ tipos.p:5:10: warning: declare a type for this array and use its name (anonymous
 tipos.p:10:18: warning: declare a type for this enumeration and use its name (anonymous types are not allowed)
 tipos.p:11:29: warning: declare a type for this array and use its name (anonymous types are not allowed)
 tipos.p:14:10: warning: declare a type for this array and use its name (anonymous types are not allowed)
-tipos.p:16:8: warning: declare a type for this pointer and use its name (anonymous types are not allowed)
 tipos.p:17:10: warning: declare a type for this enumeration and use its name (anonymous types are not allowed)
 tipos.p:23:10: warning: declare a type for this array and use its name (anonymous types are not allowed)
 tipos.p:24:7: warning: declare a type for this subrange and use its name (anonymous types are not allowed)

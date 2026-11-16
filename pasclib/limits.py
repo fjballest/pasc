@@ -21,7 +21,7 @@ LIMITS = {
 	'enforced': ('loops', 'nested_loops', 'nested_structures', 'consecutive_ifs', 'named_types'),
 	# types written in place (anonymous) in variables, typed constants,
 	# record fields and array elements: declare them with a name (array
-	# indexes may be subranges written in place, and string[n] is fine)
+	# indexes may be subranges written in place, and string[n] and ^T are fine)
 	'named_types': True,
 	# loops (while, repeat, for) in one procedure, function or main program
 	'loops': 4,

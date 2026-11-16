@@ -514,19 +514,19 @@ def layout_check(tree, found):
 # anonymous types
 
 KINDS = {A.TArray: 'array', A.TRecord: 'record', A.TSubrange: 'subrange',
-	A.TEnum: 'enumeration', A.TPointer: 'pointer'}
+	A.TEnum: 'enumeration'}
 
 
 def named(t):
-	"""Named, or a string[n], which may be written in place."""
-	return isinstance(t, (A.TName, A.TString))
+	"""Named, or a string[n] or ^T, which may be written in place."""
+	return isinstance(t, (A.TName, A.TString, A.TPointer))
 
 
 def anonymous_types(tree):
 	"""(line, col, message, 'named_types') for every type written in
 	place instead of declared with a name: in a variable or typed
 	constant, a record field or an array element.  Subranges may be
-	written in place as array indexes, and string[n] anywhere."""
+	written in place as array indexes, and string[n] and ^T anywhere."""
 	found = []
 	if not LIMITS.get('named_types'):
 		return found
