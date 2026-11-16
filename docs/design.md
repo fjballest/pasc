@@ -49,6 +49,7 @@ Two rules shaped everything:
 |---|---|
 | `pasc.py` | command-line driver of pasc |
 | `pascdb.py` | command-line driver of pascdb |
+| `pasgrade.py` | first pass at grading a directory of programs (runs `pasc.py`) |
 | `pasc`, `pascdb`, `pasc.bat`, `pascdb.bat` | launchers to run from a checkout |
 | `pasclib/__init__.py` | `VERSION` (the one place the version is set) |
 | `pasclib/lexer.py` | source text to tokens |

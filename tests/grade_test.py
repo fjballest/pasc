@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Checks pasgrade on tests/grade: compiling, relaxed compiling, endless
+loops, files read through --datos and the comparison with result.txt."""
+import os, subprocess, sys, shutil, tempfile
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+GRADE = os.path.join(os.path.dirname(HERE), 'pasgrade.py')
+fail = 0
+
+def check(what, cond):
+	global fail
+	print(('ok   ' if cond else 'FAIL ') + what)
+	fail += not cond
+
+d = tempfile.mkdtemp()
+try:
+	for f in os.listdir(os.path.join(HERE, 'grade')):
+		shutil.copy(os.path.join(HERE, 'grade', f), d)
+	for punct, want in (([], {'bien.p': 'y y', 'bucle.p': 'n y', 'etiqueta.p': 'n y', 'fichero.p': 'y y',
+			'mal.p': 'n y', 'roto.p': 'n n', 'sangria.p': 'y r'}), (['-p'], {'etiqueta.p': 'm y'})):
+		r = subprocess.run([sys.executable, GRADE, '-t', '2'] + punct + [d], capture_output=True, text=True)
+		got = {l.split('\t')[-1]: ' '.join(l.split('\t')[i] for i in (3, 5)) for l in r.stdout.splitlines()}
+		for prog, w in want.items():
+			check('%s %s: works/comp %s' % (' '.join(punct), prog, w), got.get(prog) == w)
+	notas = open(os.path.join(d, 'NOTAS.pasgrade')).read().splitlines()
+	check('NOTAS header', notas[1].split('\t') == ['nota', 'clean', 'burr', 'works', 'modok', 'comp', 'warn', 'who'])
+	out = open(os.path.join(d, 'bucle.p.out')).read()
+	check('endless loop reported', 'endless loop' in out)
+	check('relaxed compile reported', 'only compiles with pasc -R' in open(os.path.join(d, 'sangria.p.out')).read())
+finally:
+	shutil.rmtree(d)
+sys.exit(1 if fail else 0)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pasc: run a program written in the course's restricted Free Pascal.
 
-usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [--seed N] [--stack MB] prog.p
+usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [-R] [--datos] [--seed N] [--stack MB] prog.p
 
 The program is compiled to an in-memory bytecode (errors are reported as
 file:line:col) and then executed.  It behaves like the program built with
@@ -28,20 +28,22 @@ from pasclib import VERSION				# noqa: E402
 
 
 def usage():
-	sys.stderr.write('usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [--seed N] [--stack MB] prog.p\n'
+	sys.stderr.write('usage: pasc [-c] [-S] [-w] [-z] [-g] [-L] [-R] [--datos] [--seed N] [--stack MB] prog.p\n'
 		'  -c          only compile (check) the program\n'
 		'  -S          print the bytecode\n'
 		'  -w          do not report style warnings (limits in pasclib/limits.py)\n'
 		'  -z          uninitialised memory is zero instead of random\n'
 		'  -g          allow global variables before procedures and functions\n'
 		'  -L          do not enforce the limits on loops and nesting (see limits.py)\n'
+		'  -R          relaxed: the course rules (indentation, limits, ...) are only warnings\n'
+		'  --datos     every file the program opens is datos.txt (for grading)\n'
 		'  --seed N    seed for the random contents of uninitialised memory\n'
 		'  --stack MB  stack size in megabytes (default %d)\n'
 		'  --version   print the version\n' % (vm.DEFAULT_STACK >> 20))
 	sys.exit(2)
 
 
-def compile_file(path, lint=False, early_globals=False, enforce=True):
+def compile_file(path, lint=False, early_globals=False, enforce=True, relaxed=False):
 	"""Return the compiled program, or exit after printing the errors."""
 	fname = os.path.basename(path) if os.path.dirname(path) in ('', '.') else path
 	try:
@@ -52,7 +54,8 @@ def compile_file(path, lint=False, early_globals=False, enforce=True):
 		sys.exit(1)
 	try:
 		tree = parse(src, fname)
-		prog = compile_program(tree, fname, lint, early_globals=early_globals, enforce=enforce)
+		prog = compile_program(tree, fname, lint, early_globals=early_globals, enforce=enforce,
+			relaxed=relaxed)
 	except CompileError as e:
 		sys.stderr.write('%s\n' % e)
 		sys.exit(1)
@@ -70,6 +73,8 @@ def main(argv):
 	enforce = True
 	randomize = True
 	seed = None
+	datafile = None
+	relaxed = False
 	files = []
 	i = 0
 	while i < len(argv):
@@ -89,6 +94,10 @@ def main(argv):
 			enforce = False
 		elif a == '-z':
 			randomize = False
+		elif a == '-R':
+			relaxed = True
+		elif a == '--datos':
+			datafile = 'datos.txt'
 		elif a == '--seed' and i + 1 < len(argv):
 			i += 1
 			try:
@@ -108,12 +117,12 @@ def main(argv):
 		i += 1
 	if len(files) != 1:
 		usage()
-	prog = compile_file(files[0], lint, early_globals, enforce)
+	prog = compile_file(files[0], lint, early_globals, enforce, relaxed)
 	if dump:
 		print(prog.disassemble())
 	if only_check or dump:
 		return 0
-	return vm.run(prog, stack, randomize, seed)
+	return vm.run(prog, stack, randomize, seed, datafile)
 
 
 if __name__ == '__main__':

@@ -196,12 +196,19 @@ class Indent:
 		return None
 
 
-def check_indentation(tree, fname):
-	"""Raise CompileError for bad indentation; return warnings."""
+def check_indentation(tree, fname, relaxed=False):
+	"""Raise CompileError for bad indentation; return warnings.  When
+	relaxed (pasc -R), the first indentation error is a warning instead."""
 	ind = Indent(tree, fname)
-	for d in tree.decls:
-		if isinstance(d, A.Routine):
-			ind.routine_body(d)
-	ind.compound(tree.body, ind.indent(tree.body.line))
+	out = []
+	try:
+		for d in tree.decls:
+			if isinstance(d, A.Routine):
+				ind.routine_body(d)
+		ind.compound(tree.body, ind.indent(tree.body.line))
+	except CompileError as e:
+		if not relaxed:
+			raise
+		out.append('%s:%d:%d: warning: %s' % (e.fname, e.line, e.col, e.msg))
 	w = ind.tabs_warning()
-	return [w] if w else []
+	return out + ([w] if w else [])

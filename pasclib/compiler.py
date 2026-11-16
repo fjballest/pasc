@@ -71,8 +71,9 @@ class Routine:
 
 
 class Compiler:
-	def __init__(self, fname, lint=False, debug=False, early_globals=False):
+	def __init__(self, fname, lint=False, debug=False, early_globals=False, relaxed=False):
 		self.fname = fname
+		self.relaxed = relaxed		# pasc -R: course rules are warnings
 		self.early_globals = early_globals	# -g: globals before routines
 		self.debug = debug		# emit LINE instructions for pascdb
 		self.lint = lint
@@ -158,7 +159,8 @@ class Compiler:
 				rt.wio = what
 			return
 		if rt.sym.type is not None:
-			self.error('Functions must not do input/output (%s); use a procedure' % what, node)
+			(self.warn if self.relaxed else self.error)(
+				'Functions must not do input/output (%s); use a procedure' % what, node)
 		if rt.io is None:
 			rt.io = what
 
@@ -1003,7 +1005,8 @@ class Compiler:
 	def compare_checks(self, op, l, r, e):
 		# comparing ord(c1) with ord(c2): chars must be compared directly
 		if self.is_ord_char(e.left) and self.is_ord_char(e.right):
-			self.error('Do not use ord to compare characters: compare the characters directly '
+			(self.warn if self.relaxed else self.error)(
+				'Do not use ord to compare characters: compare the characters directly '
 				'(c1 %s c2)' % op, e)
 		# x = True, x <> False, ...
 		if self.lint and LIMITS.get('boolean_compare') and op in ('=', '<>') and l.type.is_bool and r.type.is_bool \
@@ -1955,11 +1958,17 @@ class _Void(T.Type):
 VOID = _Void()
 
 
-def compile_program(tree, fname, lint=False, debug=False, early_globals=False, enforce=True):
+def compile_program(tree, fname, lint=False, debug=False, early_globals=False, enforce=True,
+		relaxed=False):
+	"""relaxed (pasc -R): the course's own rules (indentation, globals last,
+	limits, no I/O in functions, no ord to compare chars) are warnings, so
+	that programs written for fpc under other rules still run."""
+	if relaxed:
+		early_globals, enforce = True, False
 	from .indent import check_indentation
 	from .lint import structure_findings, anonymous_types
-	iwarn = check_indentation(tree, fname)
-	c = Compiler(fname, lint, debug, early_globals)
+	iwarn = check_indentation(tree, fname, relaxed)
+	c = Compiler(fname, lint, debug, early_globals, relaxed)
 	prog = c.program(tree)
 	prog.warnings[:0] = iwarn
 	# limits on loops and nesting: errors when enforced (see limits.py)

@@ -52,6 +52,8 @@ pasc -w prog.p           # do not report style warnings (see below)
 pasc -z prog.p           # uninitialised memory is zero, not random
 pasc -g prog.p           # allow global variables before procedures
 pasc -L prog.p           # do not enforce the limits on loops and nesting
+pasc -R prog.p           # relaxed: the course rules (indentation, limits...) are warnings
+pasc --datos prog.p      # every file the program opens is datos.txt (for grading)
 pasc --seed 7 prog.p     # repeatable random contents for uninitialised memory
 ```
 
@@ -235,6 +237,26 @@ chosen speed, and **Continuar** runs to the next breakpoint or the end.
 **Reiniciar** starts again, and **Salir** ends pascdb. pascdb uses pasc's compiler and VM (compiled
 with extra LINE instructions); pasc itself does not need pascdb. It needs
 only Python and a browser, and the installers include it.
+
+## pasgrade: a first pass at grading
+
+```
+pasgrade [-t secs] [-i datos.txt] [-r result.txt] [-o NOTAS.pasgrade] [-p] [-z] dir
+```
+
+compiles and runs every `NAME.p` in `dir` and writes `NOTAS.pasgrade` (never
+`NOTAS`), tab separated, with the columns `nota clean burr works modok comp
+warn who`. `comp` is `y`, `r` (only compiles with `pasc -R`: valid Pascal
+that breaks the course rules) or `n`; `warn` says whether there are
+warnings. Each program runs in a scratch directory with the input file as
+`datos.txt` and as standard input, under `pasc --datos` (so whatever file
+name it opens, it reads `datos.txt`), and is stopped after `secs` seconds
+(endless loop). Its messages and output go to `NAME.p.out`. If `result.txt`
+exists, `works` is `y` when each of its lines appears in the output, in
+order, ignoring blank space, empty lines and case (`-p`: punctuation too),
+`m` when only its words appear in order, mixed with other text, and `n`
+otherwise. `-z` runs with zeroed memory, as fpc. The other columns are for
+the teacher.
 
 ## Semantics
 

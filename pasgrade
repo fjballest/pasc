@@ -1,0 +1,4 @@
+#!/bin/sh
+# pasgrade launcher for macOS and Linux: runs pasgrade.py with python3.
+d=$(dirname "$0")
+exec python3 "$d/pasgrade.py" "$@"

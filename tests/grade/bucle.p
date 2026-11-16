@@ -1,0 +1,10 @@
+program bucle;
+
+var
+	n: integer;
+begin
+	n := 1;
+	while n > 0 do begin
+		n := 1;
+	end;
+end.

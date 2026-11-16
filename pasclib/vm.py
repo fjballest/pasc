@@ -94,6 +94,7 @@ class VM:
 		self.pc = 0
 		self.hook = None		# called on LINE instructions (pascdb)
 		self.heap_types = {}		# address -> type of the block (pascdb)
+		self.datafile = None		# pasc --datos: name used for every assign
 		self.rand = MT19937(0)		# random(): fpc's generator, randseed 0
 
 	# files
@@ -854,6 +855,8 @@ class VM:
 			stack[-1] = 1 if self.file(stack[-1]).eoln() else 0
 		elif name == 'assign':
 			fname = stack.pop().decode('latin-1')
+			if self.datafile is not None:
+				fname = self.datafile		# pasc --datos: every file is datos.txt
 			addr = stack.pop()
 			h = STRUCTS['Q'].unpack_from(mem, addr)[0]
 			if 0 < h < len(self.files) and self.files[h].std is None:
@@ -913,6 +916,7 @@ class VM:
 			raise AssertionError(a)
 
 
-def run(prog, stack_size=DEFAULT_STACK, randomize=True, seed=None):
+def run(prog, stack_size=DEFAULT_STACK, randomize=True, seed=None, datafile=None):
 	vm = VM(prog, stack_size, randomize, seed)
+	vm.datafile = datafile
 	return vm.run()

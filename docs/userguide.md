@@ -35,6 +35,8 @@ given to `halt`, or the number of the run-time error. Check it with
 | `--seed N` | repeat the same random contents for uninitialised memory |
 | `-g` | allow global variables before procedures and functions |
 | `-L` | do not enforce the limits on loops and nesting (section 2) |
+| `-R` | relaxed: the course rules (indentation, limits, globals last, I/O in functions, `ord` comparisons) are only warnings |
+| `--datos` | every file the program opens is `datos.txt` (used by pasgrade) |
 | `-S` | print the bytecode the program compiles to |
 | `--stack MB` | stack size in megabytes (default 16) |
 | `--version` | print the version |
