@@ -4,4 +4,4 @@ Source -> tokens (lexer) -> syntax tree (parser) -> checked bytecode
 (compiler) -> execution on a stack VM (vm).
 """
 
-VERSION = '1.7.1'
+VERSION = '1.8.0'
