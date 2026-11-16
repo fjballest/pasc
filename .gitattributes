@@ -1,0 +1,6 @@
+# pasgrade is a tool for the teachers: kept in git, left out of releases
+pasgrade export-ignore
+pasgrade.py export-ignore
+pasgrade.bat export-ignore
+tests/grade export-ignore
+tests/grade_test.py export-ignore

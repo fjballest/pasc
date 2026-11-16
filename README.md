@@ -238,7 +238,10 @@ chosen speed, and **Continuar** runs to the next breakpoint or the end.
 with extra LINE instructions); pasc itself does not need pascdb. It needs
 only Python and a browser, and the installers include it.
 
-## pasgrade: a first pass at grading
+## pasgrade: a first pass at grading (teachers only)
+
+`pasgrade` lives in this repository but is left out of the releases
+(`.gitattributes`); install it with `packaging/install-local.sh`.
 
 ```
 pasgrade [-t secs] [-i datos.txt] [-r result.txt] [-o NOTAS.pasgrade] [-p] [-z] dir
