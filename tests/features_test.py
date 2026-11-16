@@ -2,6 +2,7 @@
 """Checks for the teaching features: stack(), the leak report and random
 uninitialised memory."""
 import os, subprocess, sys
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 D = os.path.join(HERE, 'features')
@@ -46,4 +47,17 @@ z = run('-z', 'garbage.p')[0]
 check('same seed, same garbage', a == b)
 check('other seed, other garbage', a != c)
 check('-z gives zeros', z == '0\n0\n')
+# ~/.pasclimits overrides limits.py
+import tempfile
+lf = os.path.join(tempfile.mkdtemp(), 'pasclimits')
+with open(lf, 'w') as f:
+	f.write('# test\nline_length: 10\nloops: 1\nenforced: loops\nnoexiste: 3\n')
+os.environ['PASCLIMITS'] = lf
+out, err, st = run('-c', 'garbage.p')
+check('user limits: line length', 'the limit is 10' in err)
+check('user limits: unknown limit reported', 'unknown limit "noexiste"; line ignored' in err)
+r = subprocess.run([sys.executable, PASC, '-g', '-c', os.path.join(HERE, 'lint', 'estructura.p')],
+	capture_output=True, text=True)
+check('user limits: enforced loops', 'error:' in r.stderr and 'loops (the limit is 1)' in r.stderr)
+os.environ['PASCLIMITS'] = ''
 sys.exit(1 if fail else 0)

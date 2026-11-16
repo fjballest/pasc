@@ -159,6 +159,27 @@ pasc (and pascdb) report these style warnings unless run with `-w`:
 All the limits are in one table, `pasclib/limits.py`. Change a number there,
 or set an entry to `None` to turn that check off.
 
+### Per-user limits (`~/.pasclimits`)
+
+An installed pasc can be tuned without touching `limits.py`: a plain text
+file `.pasclimits` in the home directory (`$HOME/.pasclimits` on macOS and
+Linux, `%USERPROFILE%\.pasclimits`, e.g. `C:\Users\ana\.pasclimits`, on
+Windows) overrides its values, one `limit: value` per line:
+
+```
+# my limits
+line_length: 120
+loops: 6
+begin_end: off
+enforced: loops, nested_loops
+```
+
+Values are numbers, `on`/`off` (or `true`/`false`, `yes`/`no`), `none`,
+and, for `enforced`, a list of limit names. Lines starting with `#` are
+ignored, and a wrong line is reported as a warning and ignored. The
+environment variable `PASCLIMITS` names another file instead (empty: no
+file); the test suites set it empty.
+
 ## pascdb: watching a program run
 
 ```

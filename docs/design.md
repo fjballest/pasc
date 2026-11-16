@@ -65,6 +65,7 @@ Two rules shaped everything:
 | `pasclib/indent.py` | indentation errors and the tabs warning |
 | `pasclib/lint.py` | style warnings (on unless `-w`) |
 | `pasclib/limits.py` | the table of limits for the style warnings |
+| `pasclib/userlimits.py` | `~/.pasclimits`: per-user overrides of the limits |
 | `pascdblib/server.py` | pascdb's HTTP server and the session driving the VM |
 | `pascdblib/snapshot.py` | JSON description of a paused VM |
 | `pascdblib/ui.html` | the whole pascdb page (HTML, CSS and JavaScript) |
@@ -590,7 +591,11 @@ warnings. The test suites pass `-L` so the course programs are compared
 with fpc whatever their structure, and `tests/extra/restr_*` cases check
 that each enforced limit rejects a program.
 
-Every threshold and on/off switch is in `LIMITS` (`limits.py`). A check
+Every threshold and on/off switch is in `LIMITS` (`limits.py`). At the
+end of `limits.py`, `userlimits.apply()` overrides them with the user's
+`~/.pasclimits` (or the file in `$PASCLIMITS`), lines of `limit: value`;
+the test suites set `PASCLIMITS` empty so a local file cannot change
+their results. A check
 reads its entry with `LIMITS.get(name)` and does nothing when it is
 `None` or `False`. To add a style check: add an entry to `LIMITS` with a
 comment, write a function in `lint.py` that appends to `found`, call it

@@ -3,6 +3,7 @@
 X.expected must appear in the warnings of 'pasc -c X.p', and
 nothing else may be reported."""
 import os, subprocess, sys
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINT = os.path.join(HERE, 'lint')

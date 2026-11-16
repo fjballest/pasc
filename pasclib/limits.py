@@ -69,3 +69,7 @@ LIMITS = {
 	'routine_lowercase': True,	# procedure and function names are all lowercase
 	'consistent_case': True,	# a name is always written as declared
 }
+
+# ~/.pasclimits (see userlimits.py) overrides the values above
+from .userlimits import apply as _apply_user_limits	# noqa: E402
+_apply_user_limits(LIMITS)

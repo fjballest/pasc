@@ -8,6 +8,7 @@ Known, deliberate differences are listed in KNOWN below.
 usage: run_tests.py [-v] [prog.p ...]
 """
 import os, re, sys, subprocess, tempfile
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cases
 

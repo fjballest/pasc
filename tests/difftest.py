@@ -7,6 +7,7 @@ where fpc is not installed.
 usage: difftest.py [-v] [-r] [names...]   (-r: rerun fpc, refresh cache)
 """
 import os, re, sys, shutil, subprocess, tempfile, json, hashlib
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXTRA = os.path.join(HERE, 'extra')

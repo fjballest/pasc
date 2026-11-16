@@ -2,7 +2,8 @@
 """Check a pascdb command end to end: start it on a program, step through
 a few lines over HTTP and look at the reported state.
 usage: smoke_pascdb.py PASCDB-COMMAND... prog.p"""
-import json, re, subprocess, sys, time, urllib.request
+import json, re, subprocess, sys, time, urllib.request, os
+os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 
 cmd = sys.argv[1:]
 p = subprocess.Popen(cmd[:-1] + ['--no-browser', '-g', '-L', cmd[-1]], stdout=subprocess.PIPE, text=True)
