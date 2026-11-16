@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pasgrade: a first pass at grading the Pascal programs in a directory.
 
-usage: pasgrade [-t SECS] [-i INPUT] [-r RESULT] [-o NOTAS] [-p] [-z] [dir]
+usage: pasgrade [-t SECS] [-i INPUT] [-r RESULT] [-c CHANGED] [-o NOTAS] [-p] [-z] [dir]
 
 For each NAME.p in dir (default .), pasgrade:
 
@@ -17,7 +17,12 @@ For each NAME.p in dir (default .), pasgrade:
     appears in the output, in order, ignoring blank space, empty lines and
     case (and, with -p, punctuation), and allowing extra text such as
     prompts or labels and different line breaks; that decides whether it
-    works.
+    works;
+  - if CHANGED (default result.chg.txt) exists, the result expected once
+    the change asked for in the exam is made, checks the output against it
+    in the same way: that decides modok (whether the change works).  Then
+    the program works if its output matches RESULT or CHANGED, so that a
+    program with the change made also counts as working.
 
 With -z, uninitialised variables are zero, as with fpc (pasc fills them
 with garbage, which shows programs that forget to initialise them).
@@ -32,7 +37,8 @@ course rules, such as indentation or the limits, but is valid Pascal) and n
 if it does not compile; warn is y/n; works is y/n when there is a RESULT
 (m, "maybe", when the expected words are all there, in order, but mixed
 with other text: worth a look), and n when the program does not compile,
-fails or loops. The other columns are left for the teacher.
+fails or loops; modok is the same, against CHANGED, when there is one.
+The other columns are left for the teacher.
 """
 
 import os
@@ -50,7 +56,7 @@ COLUMNS = ['nota', 'clean', 'burr', 'works', 'modok', 'comp', 'warn', 'who']
 
 
 def usage():
-	sys.stderr.write('usage: pasgrade [-t secs] [-i input] [-r result] [-o notas] [-p] [-z] [dir]\n')
+	sys.stderr.write('usage: pasgrade [-t secs] [-i input] [-r result] [-c changed] [-o notas] [-p] [-z] [dir]\n')
 	sys.exit(2)
 
 
@@ -125,7 +131,15 @@ def run(path, inp, secs, flags):
 		shutil.rmtree(d, ignore_errors=True)
 
 
-def grade(path, inp, result, secs, punct):
+def best(a, b):
+	"""the better of two verdicts (y, m, n), '-' meaning not known."""
+	for v in 'ymn':
+		if v in (a, b):
+			return v
+	return '-'
+
+
+def grade(path, inp, result, changed, secs, punct):
 	name = os.path.basename(path)
 	comp, warn, msgs = compile_check(path, [])
 	flags = []
@@ -144,14 +158,22 @@ def grade(path, inp, result, secs, punct):
 			report += ['=== it only compiles with pasc -R (it breaks the course rules)', rmsgs.rstrip()]
 	if not comp:
 		row['works'] = 'n'
+		if changed is not None:
+			row['modok'] = 'n'
 		report.append('=== not run: it does not compile')
 	else:
 		out, err, how, ok = run(path, inp, secs, flags)
 		report += ['=== output', out.rstrip('\n'), '=== messages', err.rstrip() or '(none)', '=== ' + how]
 		if not ok:
 			row['works'] = 'n'
-		elif result is not None:
-			row['works'] = compare(out, result, punct)
+			if changed is not None:
+				row['modok'] = 'n'
+		else:
+			if result is not None:
+				row['works'] = compare(out, result, punct)
+			if changed is not None:
+				row['modok'] = compare(out, changed, punct)
+				row['works'] = best(row['works'], row['modok'])
 	with open(path + '.out', 'w', encoding='latin-1', errors='replace') as f:
 		f.write('\n'.join(report) + '\n')
 	return row
@@ -159,10 +181,11 @@ def grade(path, inp, result, secs, punct):
 
 def main(argv):
 	secs, inp, resname, notas, punct, d = 10.0, 'datos.txt', 'result.txt', 'NOTAS.pasgrade', False, '.'
+	chgname = 'result.chg.txt'
 	i = 0
 	while i < len(argv):
 		a = argv[i]
-		if a in ('-t', '-i', '-r', '-o') and i + 1 < len(argv):
+		if a in ('-t', '-i', '-r', '-c', '-o') and i + 1 < len(argv):
 			i += 1
 			if a == '-t':
 				secs = float(argv[i])
@@ -170,6 +193,8 @@ def main(argv):
 				inp = argv[i]
 			elif a == '-r':
 				resname = argv[i]
+			elif a == '-c':
+				chgname = argv[i]
 			else:
 				notas = argv[i]
 		elif a == '-p':
@@ -184,15 +209,19 @@ def main(argv):
 	if os.path.basename(notas) == 'NOTAS':
 		sys.exit('pasgrade: will not overwrite NOTAS; use another name')
 	join = lambda p: p if os.path.isabs(p) else os.path.join(d, p)
-	inp, respath, notas = join(inp), join(resname), join(notas)
-	result = None
-	if os.path.exists(respath):
-		with open(respath, encoding='latin-1') as f:
-			result = f.read()
+	inp, notas = join(inp), join(notas)
+
+	def readres(name):
+		path = join(name)
+		if not os.path.exists(path):
+			return None
+		with open(path, encoding='latin-1') as f:
+			return f.read()
+	result, changed = readres(resname), readres(chgname)
 	progs = sorted(p for p in os.listdir(d) if p.endswith('.p') and not p.startswith('.'))
 	rows = []
 	for p in progs:
-		row = grade(os.path.join(d, p), inp, result, secs, punct)
+		row = grade(os.path.join(d, p), inp, result, changed, secs, punct)
 		rows.append(row)
 		print('\t'.join(row[c] for c in COLUMNS))
 		sys.stdout.flush()
@@ -201,8 +230,9 @@ def main(argv):
 		f.write('\t'.join(COLUMNS) + '\n')
 		for row in rows:
 			f.write('\t'.join(row[c] for c in COLUMNS) + '\n')
-	sys.stderr.write('pasgrade: %d programs; wrote %s%s\n' % (len(rows), notas,
-		'' if result is not None else ' (no %s: works not checked)' % resname))
+	sys.stderr.write('pasgrade: %d programs; wrote %s%s%s\n' % (len(rows), notas,
+		'' if result is not None or changed is not None else ' (no %s: works not checked)' % resname,
+		'' if changed is None else ' (modok checked with %s)' % chgname))
 	return 0
 
 

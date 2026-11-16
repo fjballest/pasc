@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks pasgrade on tests/grade: compiling, relaxed compiling, endless
-loops, files read through --datos and the comparison with result.txt."""
+loops, files read through --datos and the comparison with result.txt
+and result.chg.txt."""
 import os, subprocess, sys, shutil, tempfile
 os.environ['PASCLIMITS'] = ''	# ignore the user's ~/.pasclimits
 
@@ -28,6 +29,16 @@ try:
 	out = open(os.path.join(d, 'bucle.p.out')).read()
 	check('endless loop reported', 'endless loop' in out)
 	check('relaxed compile reported', 'only compiles with pasc -R' in open(os.path.join(d, 'sangria.p.out')).read())
+	# the change asked for in the exam: result.chg.txt decides modok
+	with open(os.path.join(d, 'result.chg.txt'), 'w') as f:
+		f.write('doble: 42\ntriple: 63\n')
+	with open(os.path.join(d, 'cambio.p'), 'w') as f:
+		f.write("program cambio;\n\nvar\n\tn: integer;\nbegin\n\treadln(n);\n"
+			"\twriteln('doble: ', 2 * n);\n\twriteln('triple: ', 3 * n);\nend.\n")
+	r = subprocess.run([sys.executable, GRADE, '-t', '2', d], capture_output=True, text=True)
+	got = {l.split('\t')[-1]: ' '.join(l.split('\t')[i] for i in (3, 4)) for l in r.stdout.splitlines()}
+	for prog, w in {'cambio.p': 'y y', 'bien.p': 'y n', 'roto.p': 'n n', 'bucle.p': 'n n'}.items():
+		check('change: %s works/modok %s' % (prog, w), got.get(prog) == w)
 finally:
 	shutil.rmtree(d)
 sys.exit(1 if fail else 0)
