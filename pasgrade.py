@@ -63,32 +63,32 @@ def compact(text, punct):
 	return ''.join(text.split())
 
 
-def same(out, result, punct):
-	"""Does the output have the expected lines, in order?  Blank space,
-	empty lines and case do not matter, and neither do extra text (prompts
-	such as "Introduce el barco:", labels) or how the output is split in
-	lines: each expected line must appear in the output, after the
-	previous one, once all blank space is removed from both."""
+def compare(out, result, punct):
+	"""'y' if the output has the expected lines, in order; 'm' (maybe) if
+	some of them are only there word by word, with other text in between
+	(labels such as "Columna: B"); 'n' otherwise.  Blank space, empty
+	lines and case do not matter, nor does extra text before, after or
+	between lines, nor how the output is split in lines: everything is
+	compared once all blank space is removed."""
 	got = compact(out, punct)
 	pos = 0
+	verdict = 'y'
 	for line in result.split('\n'):
 		want = compact(line, punct)
 		if not want:
 			continue
 		k = got.find(want, pos)
-		if k < 0:
-			return False
-		pos = k + len(want)
-	return True
-
-
-def same_words(out, result, punct):
-	"""Weaker: do the expected words appear in the output, in order, with
-	anything in between?  (Labels such as "Columna: B" between values.)"""
-	norm = lambda t: (t.lower().translate(str.maketrans(string.punctuation, ' ' * len(string.punctuation)))
-		if punct else t.lower()).split()
-	got = iter(norm(out))
-	return all(any(w == g for g in got) for w in norm(result))
+		if k >= 0:
+			pos = k + len(want)
+			continue
+		for word in line.split():		# word by word
+			w = compact(word, punct)
+			k = got.find(w, pos) if w else pos
+			if k < 0:
+				return 'n'
+			pos = k + len(w)
+		verdict = 'm'
+	return verdict
 
 
 def compile_check(path, flags):
@@ -151,12 +151,7 @@ def grade(path, inp, result, secs, punct):
 		if not ok:
 			row['works'] = 'n'
 		elif result is not None:
-			if same(out, result, punct):
-				row['works'] = 'y'
-			elif same_words(out, result, punct):
-				row['works'] = 'm'
-			else:
-				row['works'] = 'n'
+			row['works'] = compare(out, result, punct)
 	with open(path + '.out', 'w', encoding='latin-1', errors='replace') as f:
 		f.write('\n'.join(report) + '\n')
 	return row
