@@ -6,6 +6,10 @@ compile errors instead of warnings, unless pasc (or pascdb) is run with -L.
 """
 
 LIMITS = {
+	# limits enforced as compile errors (pasc -L and pascdb -L turn them
+	# into style warnings); the others are always style warnings, which
+	# pasc and pascdb -w do not report
+	'enforced': ('loops', 'nested_loops', 'nested_structures', 'consecutive_ifs', 'named_types'),
 	# a source line longer than this (tabs count as 8 columns)
 	'line_length': 100,
 	# lines in the body of a procedure or function, between begin and end:
@@ -16,10 +20,6 @@ LIMITS = {
 	# parameters of a procedure or function: more suggests a record or an
 	# array should be used instead
 	'parameters': 6,
-	# limits enforced as compile errors (pasc -L and pascdb -L turn them
-	# into style warnings); the others are always style warnings, which
-	# pasc and pascdb -w do not report
-	'enforced': ('loops', 'nested_loops', 'nested_structures', 'consecutive_ifs', 'named_types'),
 	# types written in place (anonymous) in variables, typed constants,
 	# record fields and array elements: declare them with a name (array
 	# indexes may be subranges written in place, and string[n] and ^T are fine)
