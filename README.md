@@ -1,5 +1,7 @@
 # pasc
 
+<img src="branding/logo.svg" alt="pasc logo" width="120">
+
 `pasc` runs programs written in the restricted Free Pascal dialect used in
 the course sources (the `.p` files in `../src`). It is pure
 Python 3 (3.7 or later), has no dependencies, and runs the same way on
