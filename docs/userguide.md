@@ -105,7 +105,8 @@ course:
 * **Anonymous types.** Every type used in a variable, a typed constant, a
   record field or an array element must have a name: declare it in a
   `type` section and use the name. Array indexes may be subranges
-  written in place (`array[1..N] of TipoNum`).
+  written in place (`array[1..N] of TipoNum`), and `string[n]` may be
+  written anywhere.
 
   ```
   tipos.p:23:10: error: declare a type for this array and use its name (anonymous types are not allowed) (-L allows it)
