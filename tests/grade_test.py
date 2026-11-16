@@ -20,7 +20,7 @@ try:
 		shutil.copy(os.path.join(HERE, 'grade', f), d)
 	for punct, want in (([], {'bien.p': 'y y', 'bucle.p': 'n y', 'etiqueta.p': 'n y', 'fichero.p': 'y y',
 			'mal.p': 'n y', 'roto.p': 'n n', 'sangria.p': 'y r'}), (['-p'], {'etiqueta.p': 'm y'})):
-		r = subprocess.run([sys.executable, GRADE, '-t', '2'] + punct + [d], capture_output=True, text=True)
+		r = subprocess.run([sys.executable, GRADE, '-M', '-t', '2'] + punct + [d], capture_output=True, text=True)
 		got = {l.split('\t')[-1]: ' '.join(l.split('\t')[i] for i in (3, 5)) for l in r.stdout.splitlines()}
 		for prog, w in want.items():
 			check('%s %s: works/comp %s' % (' '.join(punct), prog, w), got.get(prog) == w)
@@ -35,10 +35,13 @@ try:
 	with open(os.path.join(d, 'cambio.p'), 'w') as f:
 		f.write("program cambio;\n\nvar\n\tn: integer;\nbegin\n\treadln(n);\n"
 			"\twriteln('doble: ', 2 * n);\n\twriteln('triple: ', 3 * n);\nend.\n")
-	r = subprocess.run([sys.executable, GRADE, '-t', '2', d], capture_output=True, text=True)
+	env = dict(os.environ, PATH=os.path.dirname(sys.executable))	# no moss here
+	r = subprocess.run([sys.executable, GRADE, '-t', '2', d], capture_output=True, text=True, env=env)
 	got = {l.split('\t')[-1]: ' '.join(l.split('\t')[i] for i in (3, 4)) for l in r.stdout.splitlines()}
 	for prog, w in {'cambio.p': 'y y', 'bien.p': 'y n', 'roto.p': 'n n', 'bucle.p': 'n n'}.items():
 		check('change: %s works/modok %s' % (prog, w), got.get(prog) == w)
+	notas = open(os.path.join(d, 'NOTAS.pasgrade')).read()
+	check('no moss: noted in NOTAS', 'moss error: moss not found' in notas)
 finally:
 	shutil.rmtree(d)
 sys.exit(1 if fail else 0)

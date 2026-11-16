@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pasgrade: a first pass at grading the Pascal programs in a directory.
 
-usage: pasgrade [-t SECS] [-i INPUT] [-r RESULT] [-c CHANGED] [-o NOTAS] [-p] [-z] [dir]
+usage: pasgrade [-t SECS] [-i INPUT] [-r RESULT] [-c CHANGED] [-o NOTAS] [-p] [-z] [-M] [dir]
 
 For each NAME.p in dir (default .), pasgrade:
 
@@ -24,6 +24,13 @@ For each NAME.p in dir (default .), pasgrade:
     the program works if its output matches RESULT or CHANGED, so that a
     program with the change made also counts as working.
 
+Meanwhile, unless -M is given, it sends the programs to the moss service
+(with the moss script found in the PATH) to look for similar programs. The
+ten most similar pairs are copied, in plain text, to the end of NOTAS,
+after the moss URL, and the programs of a pair that is more than 80 %
+similar are flagged with '*' in the nota column. If moss is not there,
+fails or its server does not answer, NOTAS says so and nothing else changes.
+
 With -z, uninitialised variables are zero, as with fpc (pasc fills them
 with garbage, which shows programs that forget to initialise them).
 
@@ -41,6 +48,7 @@ fails or loops; modok is the same, against CHANGED, when there is one.
 The other columns are left for the teacher.
 """
 
+import html
 import os
 import re
 import shutil
@@ -48,15 +56,19 @@ import string
 import subprocess
 import sys
 import tempfile
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PASC = [sys.executable, os.path.join(HERE, 'pasc.py')]
 RUNFLAGS = []		# extra pasc flags for running (-z)
+MOSSSECS = 600		# how long to wait for moss
+MOSSTOP = 10		# similar pairs kept in NOTAS
+MOSSFLAG = 80		# % of similarity flagged with '*'
 COLUMNS = ['nota', 'clean', 'burr', 'works', 'modok', 'comp', 'warn', 'who']
 
 
 def usage():
-	sys.stderr.write('usage: pasgrade [-t secs] [-i input] [-r result] [-c changed] [-o notas] [-p] [-z] [dir]\n')
+	sys.stderr.write('usage: pasgrade [-t secs] [-i input] [-r result] [-c changed] [-o notas] [-p] [-z] [-M] [dir]\n')
 	sys.exit(2)
 
 
@@ -131,6 +143,51 @@ def run(path, inp, secs, flags):
 		shutil.rmtree(d, ignore_errors=True)
 
 
+def startmoss(d, progs):
+	"""starts moss on the programs in the background: (process, error)."""
+	moss = shutil.which('moss')
+	if moss is None:
+		return None, 'moss not found in the PATH'
+	if len(progs) < 2:
+		return None, 'fewer than two programs'
+	try:
+		p = subprocess.Popen([moss] + progs, cwd=d, stdin=subprocess.DEVNULL,
+			stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	except OSError as e:
+		return None, 'moss: %s' % e
+	return p, None
+
+
+def mossreport(p):
+	"""(url, top pairs, error): waits for moss and reads its report; a pair
+	is (prog1, %1, prog2, %2, lines)."""
+	try:
+		out = p.communicate(timeout=MOSSSECS)[0].decode('latin-1')
+	except subprocess.TimeoutExpired:
+		p.kill()
+		return None, [], 'moss did not answer in %d seconds' % MOSSSECS
+	urls = re.findall(r'https?://\S+', out)
+	if p.returncode != 0 or not urls:
+		last = out.strip().splitlines()[-1:] or ['no output']
+		return None, [], 'moss failed: %s' % last[0]
+	url = urls[-1]
+	try:
+		with urllib.request.urlopen(url, timeout=60) as r:
+			page = r.read().decode('latin-1')
+	except Exception as e:
+		return url, [], 'cannot read the moss report: %s' % e
+	pairs = []
+	for row in re.findall(r'(?is)<tr>(.*?)(?=<tr>|</table>)', page):
+		files = re.findall(r'(?is)<a [^>]*>\s*([^<]*?)\s*\((\d+)%\)\s*</a>', row)
+		lines = re.findall(r'(?is)<td[^>]*>\s*(\d+)\s*$', row.strip())
+		if len(files) == 2:
+			(f1, p1), (f2, p2) = files
+			pairs.append((html.unescape(f1), int(p1), html.unescape(f2), int(p2),
+				lines[0] if lines else '-'))
+	pairs.sort(key=lambda x: -max(x[1], x[3]))
+	return url, pairs[:MOSSTOP], None
+
+
 def best(a, b):
 	"""the better of two verdicts (y, m, n), '-' meaning not known."""
 	for v in 'ymn':
@@ -182,6 +239,7 @@ def grade(path, inp, result, changed, secs, punct):
 def main(argv):
 	secs, inp, resname, notas, punct, d = 10.0, 'datos.txt', 'result.txt', 'NOTAS.pasgrade', False, '.'
 	chgname = 'result.chg.txt'
+	usemoss = True
 	i = 0
 	while i < len(argv):
 		a = argv[i]
@@ -201,6 +259,8 @@ def main(argv):
 			punct = True
 		elif a == '-z':
 			RUNFLAGS.append('-z')
+		elif a == '-M':
+			usemoss = False
 		elif a.startswith('-'):
 			usage()
 		else:
@@ -219,17 +279,40 @@ def main(argv):
 			return f.read()
 	result, changed = readres(resname), readres(chgname)
 	progs = sorted(p for p in os.listdir(d) if p.endswith('.p') and not p.startswith('.'))
+	moss, mosserr = startmoss(d, progs) if usemoss else (None, None)
 	rows = []
 	for p in progs:
 		row = grade(os.path.join(d, p), inp, result, changed, secs, punct)
 		rows.append(row)
 		print('\t'.join(row[c] for c in COLUMNS))
 		sys.stdout.flush()
+	url, pairs = None, []
+	if moss is not None:
+		sys.stderr.write('pasgrade: waiting for moss...\n')
+		url, pairs, mosserr = mossreport(moss)
+	similar = set()
+	for f1, p1, f2, p2, lines in pairs:
+		if max(p1, p2) > MOSSFLAG:
+			similar.update((os.path.basename(f1), os.path.basename(f2)))
+	for row in rows:
+		if row['who'] in similar:
+			row['nota'] = '*'
 	with open(notas, 'w') as f:
 		f.write('Tab 8\n')
 		f.write('\t'.join(COLUMNS) + '\n')
 		for row in rows:
 			f.write('\t'.join(row[c] for c in COLUMNS) + '\n')
+		if usemoss:
+			f.write('\nmoss: %s\n' % (url or 'no report'))
+			if mosserr:
+				f.write('moss error: %s\n' % mosserr)
+			if pairs:
+				f.write('most similar pairs (* more than %d %%):\n' % MOSSFLAG)
+				for f1, p1, f2, p2, lines in pairs:
+					mark = '*' if max(p1, p2) > MOSSFLAG else ' '
+					f.write('%s %3d%%  %-40s %3d%%  %-40s %s lines\n' % (mark, p1, f1, p2, f2, lines))
+			if mosserr:
+				sys.stderr.write('pasgrade: %s\n' % mosserr)
 	sys.stderr.write('pasgrade: %d programs; wrote %s%s%s\n' % (len(rows), notas,
 		'' if result is not None or changed is not None else ' (no %s: works not checked)' % resname,
 		'' if changed is None else ' (modok checked with %s)' % chgname))
