@@ -1,0 +1,4 @@
+#!/bin/sh
+# pasclean launcher for macOS and Linux: runs pasclean.py with python3.
+d=$(dirname "$0")
+exec python3 "$d/pasclean.py" "$@"

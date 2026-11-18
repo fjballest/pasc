@@ -45,7 +45,9 @@ if it does not compile; warn is y/n; works is y/n when there is a RESULT
 (m, "maybe", when the expected words are all there, in order, but mixed
 with other text: worth a look), and n when the program does not compile,
 fails or loops; modok is the same, against CHANGED, when there is one.
-The other columns are left for the teacher.
+The other columns are left for the teacher. If dir has an IDS file
+(written by pasclean), NOTAS gets one more column, id, with each student's
+Moodle "Número de ID", which pasnotas uses to put the grades in Moodle.
 """
 
 import html
@@ -279,12 +281,19 @@ def main(argv):
 			return f.read()
 	result, changed = readres(resname), readres(chgname)
 	progs = sorted(p for p in os.listdir(d) if p.endswith('.p') and not p.startswith('.'))
+	ids, cols = None, COLUMNS
+	if os.path.exists(join('IDS')):		# written by pasclean
+		with open(join('IDS')) as f:
+			ids = dict(l.rstrip('\n').split('\t', 1) for l in f if '\t' in l)
+		cols = COLUMNS + ['id']
 	moss, mosserr = startmoss(d, progs) if usemoss else (None, None)
 	rows = []
 	for p in progs:
 		row = grade(os.path.join(d, p), inp, result, changed, secs, punct)
+		if ids is not None:
+			row['id'] = ids.get(p, '-')
 		rows.append(row)
-		print('\t'.join(row[c] for c in COLUMNS))
+		print('\t'.join(row[c] for c in cols))
 		sys.stdout.flush()
 	url, pairs = None, []
 	if moss is not None:
@@ -299,9 +308,9 @@ def main(argv):
 			row['nota'] = '*'
 	with open(notas, 'w') as f:
 		f.write('Tab 8\n')
-		f.write('\t'.join(COLUMNS) + '\n')
+		f.write('\t'.join(cols) + '\n')
 		for row in rows:
-			f.write('\t'.join(row[c] for c in COLUMNS) + '\n')
+			f.write('\t'.join(row[c] for c in cols) + '\n')
 		if usemoss:
 			f.write('\nmoss: %s\n' % (url or 'no report'))
 			if mosserr:

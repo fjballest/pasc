@@ -4,3 +4,10 @@ pasgrade.py export-ignore
 pasgrade.bat export-ignore
 tests/grade export-ignore
 tests/grade_test.py export-ignore
+pasclean export-ignore
+pasclean.py export-ignore
+pasclean.bat export-ignore
+pasnotas export-ignore
+pasnotas.py export-ignore
+pasnotas.bat export-ignore
+tests/moodle_test.py export-ignore

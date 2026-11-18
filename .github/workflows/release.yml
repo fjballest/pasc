@@ -28,6 +28,7 @@ jobs:
           python3 tests/lint_test.py
           python3 tests/features_test.py
           python3 tests/grade_test.py
+          python3 tests/moodle_test.py
           python3 packaging/smoke_pascdb.py python3 pascdb.py tests/features/stack1.p
 
   docs:
