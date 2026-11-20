@@ -158,6 +158,9 @@ jobs:
           tar -C dist -czf dist/$d.tar.gz $d
           # also check it on a current distro
           docker run --rm -v "$PWD/dist":/d ubuntu:24.04 sh -c "cd /d/$d && ./install.sh && /root/.local/bin/pasc --version"
+          # and installed for everyone (sudo ./install.sh /usr/local), used by a normal user
+          cp packaging/smoke.p dist/
+          docker run --rm -v "$PWD/dist":/d ubuntu:24.04 sh -c "cd /d/$d && ./install.sh /usr/local && useradd -m alumno && su alumno -c 'cd && cp /d/smoke.p . && pasc --version && pasc smoke.p && ls -la /usr/local/lib/pasc >/dev/null'"
       - uses: actions/upload-artifact@v4
         with:
           name: linux
