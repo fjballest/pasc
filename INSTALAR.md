@@ -27,7 +27,7 @@ Ninguna de las dos primeras formas necesita Python ni ningún otro programa.
 - [Opción 1: instalador](#opción-1-instalador)
   - [Windows](#windows-con-el-instalador)
   - [macOS](#macos-con-el-instalador)
-  - [Linux](#linux-con-el-instalador)
+  - [Linux](#linux-con-el-instalador) (y [para todos los usuarios](#para-todos-los-usuarios-por-ejemplo-en-un-laboratorio))
 - [Opción 2: zip portable](#opción-2-zip-portable)
   - [Windows](#windows-con-el-zip-portable)
   - [macOS](#macos-con-el-zip-portable)
@@ -240,7 +240,32 @@ pasc en tu carpeta personal. No hace falta ser administrador.
    ```
 
 Si prefieres instalarlo para todos los usuarios del ordenador, en el paso 3
-usa `sudo ./install.sh /usr/local` (te pedirá tu contraseña).
+usa `sudo ./install.sh /usr/local` (te pedirá tu contraseña). Más abajo
+se explica con detalle.
+
+#### Para todos los usuarios (por ejemplo, en un laboratorio)
+
+pasc y pascdb se pueden instalar una sola vez para todos los usuarios de
+un ordenador Linux. Hace falta ser administrador:
+
+```
+sudo ./install.sh /usr/local
+```
+
+El programa queda en `/usr/local/lib/pasc` y las órdenes `pasc` y `pascdb`
+en `/usr/local/bin`, que ya está en el PATH de todos los usuarios, así que
+no hay que cambiar nada en sus cuentas. Para actualizar a una versión
+nueva, se repite la misma orden con la versión nueva.
+
+- **Nada se escribe en la carpeta de instalación** al usarlo: puede ser de
+  solo lectura y del administrador.
+- **Cada usuario tiene lo suyo en su carpeta personal:** sus programas y,
+  solo si lo crea, su fichero `~/.pasclimits` con sus límites.
+- **Varios usuarios pueden usar pascdb a la vez:** cada uno usa un puerto
+  libre distinto, solo accesible desde el propio ordenador y con una
+  clave aleatoria en la dirección, así que nadie puede abrir la sesión de
+  otro.
+- Funciona en distribuciones antiguas y recientes de 64 bits (x86_64).
 
 Cuando hayas terminado, puedes borrar el archivo `.tar.gz` y la carpeta
 `pasc-1.0-linux-x86_64`.
@@ -651,14 +676,14 @@ o usa la opción 3.
 - **macOS (instalador):** en un terminal:
 
   ```
-  sudo rm -rf /usr/local/lib/pasc /usr/local/bin/pasc
+  sudo rm -rf /usr/local/lib/pasc /usr/local/bin/pasc /usr/local/bin/pascdb
   ```
 - **Linux (instalador):** en un terminal:
 
   ```
-  rm -rf ~/.local/lib/pasc ~/.local/bin/pasc
+  rm -rf ~/.local/lib/pasc ~/.local/bin/pasc ~/.local/bin/pascdb
   ```
 
-  (si lo instalaste para todos: `sudo rm -rf /usr/local/lib/pasc /usr/local/bin/pasc`).
+  (si lo instalaste para todos: `sudo rm -rf /usr/local/lib/pasc /usr/local/bin/pasc /usr/local/bin/pascdb`).
 - **Zip portable o código fuente:** borra la carpeta donde lo
   descomprimiste y, si la añadiste al PATH, quita esa línea o entrada.
