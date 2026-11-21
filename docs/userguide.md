@@ -431,8 +431,12 @@ Two boxes above the dump show the machine itself:
   (where it ends) and the operand stack, where the machine keeps the values
   of the expression it is computing, top first.
 - **Code** shows the program's machine code (bytecode) as one more memory:
-  one instruction per row, with its address and source line, each routine
-  starting at its own address. The instruction the `pc` points to is marked
+  one instruction per row, with its address, its bytes in hexadecimal, its
+  source line and the instruction itself, each routine starting at its own
+  address. The first byte is the operation code and the rest its argument
+  (integers take 4 bytes, least significant first): code is just bytes in
+  memory too. (pasc's machine keeps each instruction as an operation code
+  and a value; the bytes show how a real machine would store it.) The instruction the `pc` points to is marked
   `▶`, and the other instructions of the current line are shaded.
 
 **Step instruction** (or the `i` key) runs a single machine instruction,

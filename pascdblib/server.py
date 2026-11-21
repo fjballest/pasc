@@ -9,6 +9,7 @@ chosen delay has passed).
 
 import io
 import json
+import struct
 import os
 import sys
 import threading
@@ -33,6 +34,29 @@ def value_text(v):
 	if isinstance(v, float):
 		return repr(v)
 	return str(v)
+
+
+def encode(arg):
+	"""An instruction's argument as bytes, for showing code as memory."""
+	if arg is None:
+		return b''
+	if isinstance(arg, bool):
+		return bytes([int(arg)])
+	if isinstance(arg, int):
+		if -2**31 <= arg < 2**32:
+			return struct.pack('<I', arg & 0xffffffff)
+		return struct.pack('<Q', arg & 0xffffffffffffffff)
+	if isinstance(arg, float):
+		return struct.pack('<d', arg)
+	if isinstance(arg, (bytes, bytearray)):
+		return bytes([len(arg) & 0xff]) + bytes(arg)
+	if isinstance(arg, str):
+		b = arg.encode('latin-1', 'replace')
+		return b if len(b) == 1 else bytes([len(b) & 0xff]) + b
+	if isinstance(arg, (tuple, list)):
+		return b''.join(encode(x) for x in arg)
+	name = getattr(arg, 'name', None) or type(arg).__name__
+	return encode(str(name))
 
 
 class Restart(BaseException):
@@ -310,7 +334,11 @@ class Session:
 		}
 
 	def code(self):
-		"""The bytecode, one row per instruction: [line, op, argument]."""
+		"""The bytecode, one row per instruction: [line, op, argument, hex].
+		pasc's VM keeps each instruction as an opcode and a Python value;
+		hex is how a real machine could store it in bytes: the opcode, then
+		the argument (integers in 4 bytes, little endian, reals in 8, kinds
+		and strings as their characters)."""
 		prog = self.prog
 		rows = []
 		for pc, (op, arg) in enumerate(zip(prog.ops, prog.args)):
@@ -320,7 +348,7 @@ class Session:
 				a = prog.routines[arg].name
 			else:
 				a = repr(arg)
-			rows.append([prog.lines[pc], C.OPS[op], a])
+			rows.append([prog.lines[pc], C.OPS[op], a, (bytes([op]) + encode(arg)).hex()])
 		starts = {r.entry: {'kind': r.kind, 'routine': r.name} for r in prog.routines if r.entry is not None}
 		return {'rows': rows, 'starts': starts}
 

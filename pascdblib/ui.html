@@ -133,9 +133,9 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 #bye.on { display: flex; }
 #mem.on { display: flex; flex-direction: column; overflow: hidden; }
 #right.all #mem { display: flex; flex-direction: column; overflow: hidden; }
-#memlist { display: flex; gap: 12px; align-items: stretch; flex: 1; min-height: 0; flex-wrap: wrap; }
+#memlist { display: flex; gap: 12px; align-items: stretch; flex: 1 1 0; min-height: 0; }
 #memlist .regions { min-width: 210px; max-width: 260px; overflow: auto; }
-#dumpcol { flex: 3 1 400px; display: flex; flex-direction: column; min-width: 400px; min-height: 0; max-height: 100%; }
+#dumpcol { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 #hexwrap { flex: 1; overflow: auto; position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 #hexspace { position: relative; }
 #hex { position: absolute; left: 0; top: 0; right: 0; }
@@ -158,18 +158,20 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 .help { color: var(--muted); font-size: 12px; }
 #memtools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; }
 #memtools label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
-#machcol { display: none; flex-direction: column; gap: 8px; flex: 1 1 260px; min-width: 240px; min-height: 0; max-height: 100%; }
+#machcol { display: none; flex-direction: row; gap: 8px; flex: 1 1 0; min-height: 0; margin-top: 8px; }
 #machcol.on { display: flex; }
-#regs { display: none; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 6px 8px; font: 12px/1.5 var(--mono); }
+#regs { display: none; flex: 0 0 auto; width: 270px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 6px 8px; font: 12px/1.5 var(--mono); }
 #regs.on { display: block; }
 #regs .rn { color: var(--muted); display: inline-block; min-width: 3.2em; }
 #regs .ins { color: var(--accent); }
 #regs .opst { margin: 2px 0 0 1em; }
 #regs .opst div:first-child { font-weight: 600; }
-#codewrap { display: none; position: relative; flex: 1; overflow: auto; min-height: 160px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+#codewrap { display: none; position: relative; flex: 1 1 0; overflow: auto; min-height: 0; min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 #codewrap.on { display: block; }
 #code { font: 12px/1.5 var(--mono); white-space: pre; }
 #code > div { padding: 0 6px; }
+#code .hx { color: var(--muted); }
+#code .chd { color: var(--muted); position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line); }
 #code .rt { color: var(--muted); font-style: italic; background: var(--chip); }
 #code .pc { background: var(--cur); font-weight: 600; }
 #code .pc::before { content: '▶ '; color: var(--accent); }
@@ -214,7 +216,7 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 		<div id="data" class="pane on"><div class="datatools"><button id="refmode"></button></div><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
 		<div id="files" class="pane"></div>
-		<div id="mem" class="pane"><div id="memtools"><label data-tt="Muestra los registros de la máquina: el contador de programa (pc), el marco (fp), el puntero de pila (sp) y la pila de operandos"><input type="checkbox" id="showregs"> <span data-t="Registros">Registros</span></label><label data-tt="Muestra el código máquina (bytecode) del programa como una memoria más, con la instrucción a la que apunta el pc"><input type="checkbox" id="showcode"> <span data-t="Código">Código</span></label><button id="stepi" data-t="Paso de instrucción" data-tt="Ejecuta una sola instrucción de la máquina (stepi) [i]">Paso de instrucción</button></div><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div><div id="machcol"><div id="regs"></div><div id="codewrap"><div id="code"></div></div></div></div></div>
+		<div id="mem" class="pane"><div id="memtools"><label data-tt="Muestra los registros de la máquina: el contador de programa (pc), el marco (fp), el puntero de pila (sp) y la pila de operandos"><input type="checkbox" id="showregs"> <span data-t="Registros">Registros</span></label><label data-tt="Muestra el código máquina (bytecode) del programa como una memoria más, con la instrucción a la que apunta el pc"><input type="checkbox" id="showcode"> <span data-t="Código">Código</span></label><button id="stepi" data-t="Paso de instrucción" data-tt="Ejecuta una sola instrucción de la máquina (stepi) [i]">Paso de instrucción</button></div><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div></div><div id="machcol"><div id="regs"></div><div id="codewrap"><div id="code"></div></div></div></div>
 		</div>
 	</section>
 </main>
@@ -244,7 +246,9 @@ const EN = {
 	'Muestra los registros de la máquina: el contador de programa (pc), el marco (fp), el puntero de pila (sp) y la pila de operandos': 'Show the machine registers: the program counter (pc), the frame pointer (fp), the stack pointer (sp) and the operand stack',
 	'Muestra el código máquina (bytecode) del programa como una memoria más, con la instrucción a la que apunta el pc': 'Show the program\'s machine code (bytecode) as one more memory, with the instruction the pc points to',
 	'Ejecuta una sola instrucción de la máquina (stepi) [i]': 'Run a single machine instruction (stepi) [i]',
-	'siguiente instrucción': 'next instruction', 'instrucción {0}, línea {1}': 'instruction {0}, line {1}', 'contador de programa: la siguiente instrucción que se ejecutará': 'program counter: the next instruction to run',
+	'siguiente instrucción': 'next instruction', 'instrucción {0}, línea {1}: {2} bytes ({3})': 'instruction {0}, line {1}: {2} bytes ({3})',
+	'línea': 'line', 'instrucción': 'instruction',
+	'Cada instrucción es también una serie de bytes: el primero es el código de operación y los demás, su argumento (enteros en 4 bytes, al revés: el menos significativo primero)': 'Each instruction is also a series of bytes: the first is the operation code and the rest its argument (integers in 4 bytes, least significant first)', 'contador de programa: la siguiente instrucción que se ejecutará': 'program counter: the next instruction to run',
 	'marco (frame pointer): dónde empiezan los datos de la llamada en curso': 'frame pointer: where the data of the current call begins',
 	'puntero de pila (stack pointer): el final de los datos de la llamada en curso': 'stack pointer: the end of the data of the current call',
 	'ejecutando': 'running', 'pila de operandos ({0}), la cima primero:': 'operand stack ({0}), top first:', 'pila de operandos: vacía': 'operand stack: empty',
@@ -818,11 +822,18 @@ function buildCode() {
 	box.textContent = '';
 	codeEls = [];
 	if (!codeInfo) return;
+	const hd = el('div', 'chd', '   pc  ' + L('bytes').padEnd(31, ' ') + L('línea').padStart(5, ' ') + '  ' + L('instrucción'));
+	hd.title = L('Cada instrucción es también una serie de bytes: el primero es el código de operación y los demás, su argumento (enteros en 4 bytes, al revés: el menos significativo primero)');
+	box.append(hd);
 	codeInfo.rows.forEach((r, pc) => {
 		const st = codeInfo.starts[pc];
 		if (st) box.append(el('div', 'rt', frameName(st) + ':'));
-		const d = el('div', null, String(pc).padStart(5, ' ') + ' ' + String(r[0]).padStart(4, ' ') + '  ' + r[1].padEnd(6, ' ') + ' ' + r[2]);
-		d.title = L('instrucción {0}, línea {1}', pc, r[0]);
+		const bytes = r[3].match(/../g) || [], HX = 10;
+		const hx = (bytes.slice(0, HX).join(' ') + (bytes.length > HX ? ' …' : '')).padEnd(HX * 3 + 1, ' ');
+		const d = el('div');
+		d.append(document.createTextNode(String(pc).padStart(5, ' ') + '  '), el('span', 'hx', hx),
+			document.createTextNode(String(r[0]).padStart(4, ' ') + '  ' + r[1].padEnd(6, ' ') + ' ' + r[2]));
+		d.title = L('instrucción {0}, línea {1}: {2} bytes ({3})', pc, r[0], bytes.length, bytes.join(' '));
 		box.append(d);
 		codeEls.push(d);
 	});
