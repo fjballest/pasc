@@ -14,7 +14,7 @@ IMG = os.path.join(HERE, 'img')
 PASCDB = os.path.join(os.path.dirname(HERE), 'pascdb.py')
 
 # name: (program, input lines, actions, page settings, window size)
-# actions: ('break', line) ('run',) ('step', n) ('input', text)
+# actions: ('break', line) ('run',) ('step', n) ('stepi', n) ('input', text)
 SHOTS = {
 	'start': ('lista.p', [], [], 'lang=en', (1400, 820)),
 	'list': ('lista.p', [], [('break', 44), ('run',), ('run',), ('run',)], 'lang=en', (1400, 820)),
@@ -23,6 +23,7 @@ SHOTS = {
 	'varcopies': ('puntos.p', [], [('break', 24), ('run',), ('run',)], 'lang=en&refs=copy', (1400, 820)),
 	'stack': ('puntos.p', [], [('break', 24), ('run',), ('run',)], 'lang=en&tab=stack', (1400, 820)),
 	'memory': ('puntos.p', [], [('break', 24), ('run',), ('run',), ('step', 1)], 'lang=en&tab=mem', (1400, 820)),
+	'machine': ('puntos.p', [], [('break', 24), ('run',), ('run',), ('stepi', 3)], 'lang=en&tab=mem&regs=1&code=1', (1600, 900)),
 	'together': ('lista.p', [], [('break', 44), ('run',), ('run',)], 'lang=en&together=1', (2300, 900)),
 	'spanish': ('lista.p', [], [('break', 44), ('run',), ('run',)], 'lang=es', (1400, 820)),
 	'finished': ('lista.p', [], [('run',)], 'lang=en', (1400, 820)),
@@ -80,6 +81,10 @@ def shot(name):
 			elif a[0] == 'step':
 				for _ in range(a[1]):
 					api('step')
+					time.sleep(0.25)
+			elif a[0] == 'stepi':
+				for _ in range(a[1]):
+					api('stepi')
 					time.sleep(0.25)
 			elif a[0] == 'input':
 				api('input', text=a[1])

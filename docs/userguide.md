@@ -343,6 +343,7 @@ statement.
 | **Step** | Enter or F10 | run one statement, going into procedures and functions |
 | **Play** / **Pause** | Space | run statement after statement on its own, at the chosen speed |
 | **Continue** | | run until the next breakpoint, or to the end |
+| **Step instruction** (in Memory) | i | run a single machine instruction |
 | **Restart** | | start the program again |
 | **Quit** | | end pascdb |
 
@@ -418,7 +419,25 @@ bytes, which are shaded. The bytes changed by the last step are
 highlighted. The stack pointer is marked `sp ▶`: the bytes above it are
 dimmed, because they belonged to calls that have returned. They are no
 longer in use, but they are still there, which is why a new call finds
-garbage in its local variables.
+garbage in its local variables. The frame pointer is marked `◀ fp`.
+
+Two boxes above the dump show the machine itself:
+
+![Memory with the registers and the code](img/machine.png)
+
+- **Registers** shows the registers of pasc's machine: the program counter
+  `pc` (the next instruction to run, shown next to it), the frame pointer
+  `fp` (where the data of the current call begins), the stack pointer `sp`
+  (where it ends) and the operand stack, where the machine keeps the values
+  of the expression it is computing, top first.
+- **Code** shows the program's machine code (bytecode) as one more memory:
+  one instruction per row, with its address and source line, each routine
+  starting at its own address. The instruction the `pc` points to is marked
+  `▶`, and the other instructions of the current line are shaded.
+
+**Step instruction** (or the `i` key) runs a single machine instruction,
+so you can watch an assignment load its operands onto the operand stack,
+compute and store the result. **Step** goes back to running whole lines.
 
 ### 6.6 Files: what the program reads
 
@@ -433,7 +452,8 @@ be read highlighted. Here `leerpal` has read `un` from `palabras.txt` and
 ### 6.7 Several panes at once
 
 Each tab has a ⧉ button that opens it in its own window, and **Together**
-shows all of them side by side:
+shows several of them side by side. While Together is on, clicking a tab
+adds it or removes it (pascdb remembers the choice):
 
 ![Together: all the panes side by side](img/together.png)
 

@@ -93,6 +93,8 @@ class VM:
 		self.callstack = []
 		self.pc = 0
 		self.hook = None		# called on LINE instructions (pascdb)
+		self.ihook = None		# called before every instruction (pascdb stepi)
+		self.opstack = []		# the operand stack, for pascdb
 		self.heap_types = {}		# address -> type of the block (pascdb)
 		self.datafile = None		# pasc --datos: name used for every assign
 		self.rand = MT19937(0)		# random(): fpc's generator, randseed 0
@@ -231,6 +233,8 @@ class VM:
 		routines = prog.routines
 		mem = self.mem
 		stack = []
+		self.opstack = stack
+		ihook = self.ihook
 		push = stack.append
 		pop = stack.pop
 		S = STRUCTS
@@ -259,6 +263,8 @@ class VM:
 		DIV, MOD, INCG, INCL = C.DIV, C.MOD, C.INCG, C.INCL
 		try:
 			while True:
+				if ihook is not None:
+					ihook(pc, fp, sp)
 				op = ops[pc]
 				a = args[pc]
 				pc += 1

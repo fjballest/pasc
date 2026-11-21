@@ -537,6 +537,13 @@ may block (that is how pascdb pauses the program) and may raise an
 exception to abandon the run. pasc never emits `LINE`, so the hook costs
 nothing there.
 
+`vm.ihook`, also `None` for pasc, is called with `(pc, fp, sp)` before
+every instruction; pascdb uses it for its *Step instruction* (stepi).
+`loop()` copies it to a local once, so for pasc it costs one `is not None`
+test per instruction (about 2 % of the run time). pascdb's `ihook` returns
+at once unless a stepi asked it to stop. The operand stack is a local list
+in `loop()`; `vm.opstack` refers to it so that pascdb can show it.
+
 ## 10. Debugging aids (`pasclib/debug.py`)
 
 * **`stack()`** compiles to `SYS 'stack'` with the level on the operand

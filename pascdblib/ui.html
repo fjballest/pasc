@@ -133,9 +133,9 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 #bye.on { display: flex; }
 #mem.on { display: flex; flex-direction: column; overflow: hidden; }
 #right.all #mem { display: flex; flex-direction: column; overflow: hidden; }
-#memlist { display: flex; gap: 12px; align-items: stretch; flex: 1; min-height: 0; }
+#memlist { display: flex; gap: 12px; align-items: stretch; flex: 1; min-height: 0; flex-wrap: wrap; }
 #memlist .regions { min-width: 210px; max-width: 260px; overflow: auto; }
-#dumpcol { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#dumpcol { flex: 3 1 400px; display: flex; flex-direction: column; min-width: 400px; min-height: 0; max-height: 100%; }
 #hexwrap { flex: 1; overflow: auto; position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 #hexspace { position: relative; }
 #hex { position: absolute; left: 0; top: 0; right: 0; }
@@ -156,6 +156,28 @@ body.popout #left, body.popout .tabs, body.popout header button, body.popout hea
 #hex .on { background: var(--cur); }
 #hex .ad { color: var(--muted); }
 .help { color: var(--muted); font-size: 12px; }
+#memtools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; }
+#memtools label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+#machcol { display: none; flex-direction: column; gap: 8px; flex: 1 1 260px; min-width: 240px; min-height: 0; max-height: 100%; }
+#machcol.on { display: flex; }
+#regs { display: none; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 6px 8px; font: 12px/1.5 var(--mono); }
+#regs.on { display: block; }
+#regs .rn { color: var(--muted); display: inline-block; min-width: 3.2em; }
+#regs .ins { color: var(--accent); }
+#regs .opst { margin: 2px 0 0 1em; }
+#regs .opst div:first-child { font-weight: 600; }
+#codewrap { display: none; position: relative; flex: 1; overflow: auto; min-height: 160px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+#codewrap.on { display: block; }
+#code { font: 12px/1.5 var(--mono); white-space: pre; }
+#code > div { padding: 0 6px; }
+#code .rt { color: var(--muted); font-style: italic; background: var(--chip); }
+#code .pc { background: var(--cur); font-weight: 600; }
+#code .pc::before { content: '▶ '; color: var(--accent); }
+#code .curl { background: rgba(31, 95, 191, 0.06); }
+#hex .fpm { color: var(--accent); font-weight: 600; }
+#hex .b.fpb { outline: 1px solid var(--accent); }
+#right.all .pane.off { display: none !important; }
+#right.all .tabs button[data-tab].off { opacity: 0.5; text-decoration: line-through; }
 kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; }
 </style>
 </head>
@@ -186,13 +208,13 @@ kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 3px;
 			<button data-tab="stack" data-t="Pila">Pila</button><button class="pop" data-pop="stack" data-tt="Abrir Pila en otra ventana">⧉</button>
 			<button data-tab="mem" data-t="Memoria">Memoria</button><button class="pop" data-pop="mem" data-tt="Abrir Memoria en otra ventana">⧉</button>
 			<button data-tab="files" data-t="Ficheros">Ficheros</button><button class="pop" data-pop="files" data-tt="Abrir Ficheros en otra ventana">⧉</button>
-			<button id="together" class="pop" data-t="▥ Juntos" data-tt="Ver Datos, Pila y Memoria a la vez, uno al lado del otro">▥ Juntos</button>
+			<button id="together" class="pop" data-t="▥ Juntos" data-tt="Ver varias pestañas a la vez, una al lado de la otra; en Juntos, pulsa una pestaña para ponerla o quitarla">▥ Juntos</button>
 		</div>
 		<div class="panes">
 		<div id="data" class="pane on"><div class="datatools"><button id="refmode"></button></div><div id="datacols"><svg id="arrows"></svg></div></div>
 		<div id="stack" class="pane"></div>
 		<div id="files" class="pane"></div>
-		<div id="mem" class="pane"><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div></div></div>
+		<div id="mem" class="pane"><div id="memtools"><label data-tt="Muestra los registros de la máquina: el contador de programa (pc), el marco (fp), el puntero de pila (sp) y la pila de operandos"><input type="checkbox" id="showregs"> <span data-t="Registros">Registros</span></label><label data-tt="Muestra el código máquina (bytecode) del programa como una memoria más, con la instrucción a la que apunta el pc"><input type="checkbox" id="showcode"> <span data-t="Código">Código</span></label><button id="stepi" data-t="Paso de instrucción" data-tt="Ejecuta una sola instrucción de la máquina (stepi) [i]">Paso de instrucción</button></div><div id="memlist"><div class="regions"></div><div id="dumpcol"><div id="memttl" class="help"></div><div id="hexwrap"><div id="hexspace"><div id="hex"></div></div></div></div><div id="machcol"><div id="regs"></div><div id="codewrap"><div id="code"></div></div></div></div></div>
 		</div>
 	</section>
 </main>
@@ -218,9 +240,20 @@ const EN = {
 	'⟲ Reiniciar': '⟲ Restart', 'Vuelve a empezar': 'Start again', '✕ Salir': '✕ Quit', 'Termina pascdb y cierra la página': 'End pascdb and close the page',
 	'Velocidad': 'Speed', 'Salida del programa': 'Program output',
 	'Entrada para el programa (Intro para enviar la línea)': 'Input for the program (Enter sends the line)', 'Fin de la entrada (eof)': 'End of input (eof)',
+	'Registros': 'Registers', 'Código': 'Code', 'Paso de instrucción': 'Step instruction',
+	'Muestra los registros de la máquina: el contador de programa (pc), el marco (fp), el puntero de pila (sp) y la pila de operandos': 'Show the machine registers: the program counter (pc), the frame pointer (fp), the stack pointer (sp) and the operand stack',
+	'Muestra el código máquina (bytecode) del programa como una memoria más, con la instrucción a la que apunta el pc': 'Show the program\'s machine code (bytecode) as one more memory, with the instruction the pc points to',
+	'Ejecuta una sola instrucción de la máquina (stepi) [i]': 'Run a single machine instruction (stepi) [i]',
+	'siguiente instrucción': 'next instruction', 'instrucción {0}, línea {1}': 'instruction {0}, line {1}', 'contador de programa: la siguiente instrucción que se ejecutará': 'program counter: the next instruction to run',
+	'marco (frame pointer): dónde empiezan los datos de la llamada en curso': 'frame pointer: where the data of the current call begins',
+	'puntero de pila (stack pointer): el final de los datos de la llamada en curso': 'stack pointer: the end of the data of the current call',
+	'ejecutando': 'running', 'pila de operandos ({0}), la cima primero:': 'operand stack ({0}), top first:', 'pila de operandos: vacía': 'operand stack: empty',
+	'parado en una instrucción': 'stopped at an instruction', 'parado al empezar la línea {0}': 'stopped at the start of line {0}',
+	'  ◀ marco (fp)': '  ◀ frame pointer (fp)', 'Marco (fp): aquí empiezan los datos de la llamada en curso': 'Frame pointer (fp): the data of the current call begins here',
+	'En Juntos, pulsa una pestaña para ponerla o quitarla': 'In Together, click a tab to add or remove it',
 	'Datos': 'Data', 'Pila': 'Stack', 'Memoria': 'Memory', 'Abrir Datos en otra ventana': 'Open Data in another window',
 	'Abrir Pila en otra ventana': 'Open Stack in another window', 'Abrir Memoria en otra ventana': 'Open Memory in another window',
-	'▥ Juntos': '▥ Together', 'Ver Datos, Pila y Memoria a la vez, uno al lado del otro': 'Show Data, Stack and Memory at once, side by side',
+	'▥ Juntos': '▥ Together', 'Ver varias pestañas a la vez, una al lado de la otra; en Juntos, pulsa una pestaña para ponerla o quitarla': 'Show several tabs at once, side by side; in Together, click a tab to add or remove it',
 	'pascdb ha terminado': 'pascdb has ended', 'Puedes cerrar esta ventana.': 'You can close this window.',
 	'Punto de parada': 'Breakpoint', 'Valor sin inicializar o fuera de rango (basura)': 'Uninitialised or out of range value (garbage)',
 	'longitud {0} de {1}': 'length {0} of {1}', '… {0} más': '… {0} more',
@@ -644,10 +677,11 @@ function renderStack() {
    stack, then the heap); only the rows on screen are drawn */
 const ROWH = 18, CHUNK = 4096;
 let memItems = [], memSegs = [], memRows = 0, chunks = new Map(), chunkVer = -1;
-let memSp = 0, memStack = 0;
+let memSp = 0, memStack = 0, memFp = 0;
 function memLayout(s) {
 	const r = s.regions || {}, segs = [];
 	memSp = r.sp || 0;
+	memFp = state.machine ? state.machine.fp : 0;
 	memStack = r.stack ? r.stack[0] : 0;
 	if (r.used) segs.push({ a: r.used[0] - (r.used[0] % 16), b: r.used[1] });
 	if (r.heap && r.heap[1] > r.heap[0]) segs.push({ gap: r.heap[0] - (r.used ? r.used[1] : 0) }, { a: r.heap[0] - (r.heap[0] % 16), b: r.heap[1] });
@@ -707,7 +741,7 @@ function drawDump() {
 		} else {
 			line.append(el('span', 'ad', hex(base).padStart(10, ' ') + '  '));
 		}
-		let ascii = '', label = '', spHere = false;
+		let ascii = '', label = '', spHere = false, fpHere = false;
 		for (let k = 0; k < 16; k++) {
 			const a = base + k;
 			if (a >= r.g.b) { line.append(el('span', 'b', '   ')); continue; }
@@ -719,6 +753,7 @@ function drawDump() {
 			if (inRanges(a, sel)) cls += ' on';
 			if (memSp && a >= memSp && a >= memStack) cls += ' old';
 			if (a === memSp) spHere = true;
+			if (memFp && a === memFp) { fpHere = true; cls += ' fpb'; }
 			if (inRanges(a, changedRanges)) cls += ' chg';
 			const b = el('span', cls, by + ' ');
 			if (o >= 0) b.title = memItems[o].n + ' (' + hex(memItems[o].a) + ', ' + memItems[o].s + ' bytes)';
@@ -727,6 +762,7 @@ function drawDump() {
 			ascii += c >= 32 && c < 127 ? String.fromCharCode(c) : '.';
 		}
 		line.append(el('span', 'ad', ' ' + ascii.padEnd(16, ' ') + ' '), el('span', 'nm', label));
+		if (fpHere) { const m = el('span', 'fpm', L('  ◀ marco (fp)')); m.title = L('Marco (fp): aquí empiezan los datos de la llamada en curso'); line.append(m); }
 		if (spHere) line.append(el('span', 'spm', L('  ◀ puntero de pila (sp)')));
 		h.append(line);
 	}
@@ -739,6 +775,7 @@ function memScrollTo(addr, force) {
 function renderMem() {
 	const s = state.snap, list = $('#memlist .regions');
 	list.textContent = '';
+	renderMachine();
 	if (!s) { list.append(el('div', 'help', L('El programa no está parado.'))); return; }
 	if (chunkVer !== version) { chunks = new Map(); chunkVer = version; }
 	const items = [];
@@ -765,19 +802,119 @@ function renderMem() {
 		requestAnimationFrame(drawDump);
 	}
 }
+/* the machine: registers and bytecode, shown in Memoria */
+let codeInfo = null, codeEls = [], codeBuilt = false, lastPc = -1;
+const pref = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { } };
+$('#showregs').checked = pref('pascdb-regs', false);
+$('#showcode').checked = pref('pascdb-code', false);
+function insText(pc) {
+	if (!codeInfo || pc < 0 || pc >= codeInfo.rows.length) return '';
+	const r = codeInfo.rows[pc];
+	return r[1] + (r[2] ? ' ' + r[2] : '');
+}
+function buildCode() {
+	const box = $('#code');
+	box.textContent = '';
+	codeEls = [];
+	if (!codeInfo) return;
+	codeInfo.rows.forEach((r, pc) => {
+		const st = codeInfo.starts[pc];
+		if (st) box.append(el('div', 'rt', frameName(st) + ':'));
+		const d = el('div', null, String(pc).padStart(5, ' ') + ' ' + String(r[0]).padStart(4, ' ') + '  ' + r[1].padEnd(6, ' ') + ' ' + r[2]);
+		d.title = L('instrucción {0}, línea {1}', pc, r[0]);
+		box.append(d);
+		codeEls.push(d);
+	});
+	codeBuilt = true;
+	lastPc = -1;
+}
+function renderMachine() {
+	const regsOn = $('#showregs').checked, codeOn = $('#showcode').checked;
+	$('#machcol').classList.toggle('on', regsOn || codeOn);
+	$('#regs').classList.toggle('on', regsOn);
+	$('#codewrap').classList.toggle('on', codeOn);
+	const m = state && state.machine, snap = state && state.snap;
+	if (regsOn) {
+		const r = $('#regs');
+		r.textContent = '';
+		if (!m) r.append(el('div', 'help', L('El programa no está parado.')));
+		else {
+			r.append(el('div', 'help', m.atinstr ? L('parado en una instrucción') : L('parado al empezar la línea {0}', snap ? snap.line : '?')));
+			const reg = (n, v, tip, extra) => {
+				const d = el('div');
+				d.title = tip;
+				d.append(el('span', 'rn', n), document.createTextNode(String(v)));
+				if (extra) d.append(el('span', 'ins', '  ' + extra));
+				r.append(d);
+			};
+			reg('pc', m.pc, L('contador de programa: la siguiente instrucción que se ejecutará'), insText(m.pc));
+			reg('fp', hex(m.fp), L('marco (frame pointer): dónde empiezan los datos de la llamada en curso'));
+			reg('sp', hex(m.sp), L('puntero de pila (stack pointer): el final de los datos de la llamada en curso'));
+			r.append(el('div', 'help', L('ejecutando') + ' ' + frameName(m)));
+			if (!m.depth) r.append(el('div', 'help', L('pila de operandos: vacía')));
+			else {
+				r.append(el('div', 'help', L('pila de operandos ({0}), la cima primero:', m.depth)));
+				const o = el('div', 'opst');
+				m.stack.slice().reverse().forEach(v => o.append(el('div', null, v)));
+				if (m.depth > m.stack.length) o.append(el('div', 'help', '…'));
+				r.append(o);
+			}
+		}
+	}
+	if (codeOn) {
+		if (!codeBuilt) buildCode();
+		const pc = m ? m.pc : -1, line = snap ? snap.line : -1;
+		codeEls.forEach((d, k) => {
+			d.classList.toggle('pc', k === pc);
+			d.classList.toggle('curl', !!codeInfo && codeInfo.rows[k][0] === line && k !== pc);
+		});
+		if (pc >= 0 && pc < codeEls.length && pc !== lastPc) {
+			const w = $('#codewrap'), d = codeEls[pc];
+			if (d.offsetTop < w.scrollTop || d.offsetTop + d.offsetHeight > w.scrollTop + w.clientHeight)
+				w.scrollTop = Math.max(0, d.offsetTop - w.clientHeight / 3);
+		}
+		lastPc = pc;
+	}
+}
+$('#showregs').onchange = e => { setPref('pascdb-regs', e.target.checked); renderMachine(); requestAnimationFrame(drawDump); };
+$('#showcode').onchange = e => { setPref('pascdb-code', e.target.checked); lastPc = -1; renderMachine(); requestAnimationFrame(drawDump); };
+$('#stepi').onclick = () => api('stepi');
+api('code').then(c => { codeInfo = c; codeBuilt = false; if (state) renderMachine(); });
 $('#hexwrap').addEventListener('scroll', () => requestAnimationFrame(drawDump));
 window.addEventListener('resize', () => requestAnimationFrame(drawDump));
 
 /* tabs, pop-out windows, side by side */
 const VIEW = new URLSearchParams(location.search).get('view');
-const shown = name => VIEW ? VIEW === name : ($('#right').classList.contains('all') || $('#' + name).classList.contains('on'));
+/* the tabs shown side by side in Juntos */
+let together = ['data', 'stack', 'mem', 'files'];
+try { const t = localStorage.getItem('pascdb-together'); if (t) together = t.split(',').filter(x => ['data', 'stack', 'mem', 'files'].includes(x)); } catch (e) { }
+if (!together.length) together = ['data', 'stack', 'mem'];
+function applyTogether() {
+	const all = $('#right').classList.contains('all');
+	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('off', all && !together.includes(p.id)));
+	document.querySelectorAll('.tabs button[data-tab]').forEach(b => {
+		b.classList.toggle('off', all && !together.includes(b.dataset.tab));
+		b.title = all ? L('En Juntos, pulsa una pestaña para ponerla o quitarla') : '';
+	});
+}
+function toggleTogether(name) {
+	if (together.includes(name)) { if (together.length > 1) together = together.filter(x => x !== name); }
+	else together = ['data', 'stack', 'mem', 'files'].filter(x => x === name || together.includes(x));
+	try { localStorage.setItem('pascdb-together', together.join(',')); } catch (e) { }
+	applyTogether();
+	lastPc = -1;
+	renderAll();
+	if (shown('data')) drawArrows();
+}
+const shown = name => VIEW ? VIEW === name : ($('#right').classList.contains('all') ? together.includes(name) : $('#' + name).classList.contains('on'));
 function showTab(name) {
 	if (VIEW || $('#right').classList.contains('all')) { if (name === 'mem') renderMem(); return; }
 	document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
 	document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === name));
 	if (name === 'data') drawArrows();
 }
-document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); if (b.dataset.tab === 'files') renderFiles(); });
+document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.onclick = () => { if (!VIEW && $('#right').classList.contains('all')) { toggleTogether(b.dataset.tab); return; } showTab(b.dataset.tab); if (b.dataset.tab === 'mem') renderMem(); if (b.dataset.tab === 'stack') renderStack(); if (b.dataset.tab === 'files') renderFiles(); });
 const popups = {};
 document.querySelectorAll('.tabs button[data-pop]').forEach(b => b.onclick = () => {
 	popups[b.dataset.pop] = window.open(location.pathname + '?t=' + T + '&lang=' + LANG + '&view=' + b.dataset.pop, 'pascdb-' + b.dataset.pop, 'width=900,height=700');
@@ -791,6 +928,8 @@ $('#together').onclick = () => {
 	const r = $('#right'), on = !r.classList.contains('all');
 	r.classList.toggle('all', on);
 	$('#together').classList.toggle('on', on);
+	applyTogether();
+	lastPc = -1;
 	if (!on) showTab('data');
 	renderAll();
 };
@@ -841,7 +980,7 @@ function select(it) {
 }
 if (chan) chan.onmessage = e => {
 	if (e.data && e.data.quit) { gone = true; bye(); return; }
-	if (e.data && e.data.lang) { LANG = e.data.lang; applyLang(); if (state) { renderStatus(); renderAll(); } return; }
+	if (e.data && e.data.lang) { LANG = e.data.lang; applyLang(); codeBuilt = false; if (state) { renderStatus(); renderAll(); } return; }
 	selected = e.data;
 	if (shown('mem')) { renderMem(); requestAnimationFrame(() => { memScrollTo(selected.a, true); drawDump(); }); }
 };
@@ -875,8 +1014,9 @@ async function poll() {
 			if (s.status === 'quit') { gone = true; bye(); return; }
 			if (s.version !== version) {
 				const oldSnap = state ? state.snap || null : null;
-				const newSnap = JSON.stringify(s.snap || null) !== JSON.stringify(oldSnap);
-				if (newSnap) diff(oldSnap, s.snap || null);
+				const snapChanged = JSON.stringify(s.snap || null) !== JSON.stringify(oldSnap);
+				const newSnap = snapChanged || JSON.stringify(s.machine || null) !== JSON.stringify(state ? state.machine || null : null);
+				if (snapChanged) diff(oldSnap, s.snap || null);
 				state = s;
 				version = s.version;
 				renderStatus();
@@ -903,6 +1043,7 @@ $('#lang').onclick = () => {
 	try { localStorage.setItem('pascdb-lang', LANG); } catch (e) { }
 	if (chan) chan.postMessage({ lang: LANG });
 	applyLang();
+	codeBuilt = false;
 	if (state) { renderStatus(); renderAll(); }
 };
 function bye() {
@@ -920,12 +1061,19 @@ document.addEventListener('keydown', e => {
 	if (e.target.tagName === 'INPUT') return;
 	if (e.key === 'Enter' || e.key === 'F10') { e.preventDefault(); api('step'); }
 	else if (e.key === ' ') { e.preventDefault(); $('#play').click(); }
+	else if (e.key === 'i') { e.preventDefault(); api('stepi'); }
 });
-/* optional URL settings: &tab=stack|mem|files, &together=1, &refs=copy|arrow */
+/* optional URL settings: &tab=stack|mem|files, &together=1 (or a list: data,mem), &refs=copy|arrow, &regs=1, &code=1 */
 {
 	const q = new URLSearchParams(location.search);
 	if (q.get('refs')) refCopies = q.get('refs') === 'copy';
-	if (!VIEW && q.get('together')) { $('#right').classList.add('all'); $('#together').classList.add('on'); }
+	if (q.get('regs')) $('#showregs').checked = q.get('regs') === '1';
+	if (q.get('code')) $('#showcode').checked = q.get('code') === '1';
+	if (!VIEW && q.get('together')) {
+		if (q.get('together') !== '1') together = q.get('together').split(',').filter(x => ['data', 'stack', 'mem', 'files'].includes(x));
+		if (!together.length) together = ['data', 'stack', 'mem'];
+		$('#right').classList.add('all'); $('#together').classList.add('on'); applyTogether();
+	}
 	else if (!VIEW && q.get('tab')) showTab(q.get('tab'));
 }
 api('source').then(s => { lines = s.lines; $('#fname').textContent = s.fname; renderSource(); poll(); });

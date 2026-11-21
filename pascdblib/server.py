@@ -19,10 +19,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 from pasclib import vm as pvm
+from pasclib import code as C
 from pasclib.errors import Halt
 from .snapshot import snapshot, final_snapshot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def value_text(v):
+	"""An operand stack value as text."""
+	if isinstance(v, (bytes, bytearray)):
+		return "'" + bytes(v).decode('latin-1') + "'"
+	if isinstance(v, float):
+		return repr(v)
+	return str(v)
 
 
 class Restart(BaseException):
@@ -56,6 +66,9 @@ class Session:
 		self.mode = 'pause'		# pause step play run
 		self.delay = 0.6
 		self.permits = 0
+		self.ipermits = 0
+		self.icount = None		# instructions to run before stopping (stepi)
+		self.atinstr = False
 		self.breaks = set()
 		self.thread = None
 		self.start()
@@ -98,6 +111,8 @@ class Session:
 						self.version += 1
 			vm.inp.fill = fill
 			vm.hook = self.hook
+			vm.ihook = self.ihook
+			self.icount = None
 			self.version += 1
 		self.thread = threading.Thread(target=self.run, args=(vm,), daemon=True)
 		self.thread.start()
@@ -127,43 +142,73 @@ class Session:
 			self.cv.notify_all()
 
 	def hook(self, pc, fp, sp, pos):
-		vm = self.vm
+		"""Called by the VM at each LINE instruction."""
 		with self.cv:
 			if self.restart_req:
 				raise Restart()
 			line = pos[0]
 			self.lastpos = pos
+			if self.mode == 'stepi':		# going instruction by instruction
+				return
 			if self.mode == 'run' and line not in self.breaks:
 				return
 			if self.mode == 'run':
 				self.mode = 'pause'
-			self.paused = (pc, fp, sp, pos)
-			self.highwater = max(self.highwater, sp)
-			self.snap = None
-			self.status = 'paused'
-			self.version += 1
-			self.cv.notify_all()
-			deadline = time.time() + self.delay
-			while True:
-				if self.restart_req:
-					raise Restart()
-				if self.mode == 'step' and self.permits > 0:
-					self.permits -= 1
-					if self.permits == 0:
-						self.mode = 'pause'
+			self.wait(pc, fp, sp, pos, False)
+
+	def ihook(self, pc, fp, sp):
+		"""Called by the VM before every instruction; it stops only after a
+		stepi.  The quick test keeps the program fast the rest of the time."""
+		c = self.icount
+		if c is None:
+			return
+		if c > 0:
+			self.icount = c - 1
+			return
+		with self.cv:
+			self.icount = None
+			if self.restart_req:
+				raise Restart()
+			pos = self.lastpos or (self.prog.lines[pc], 1)
+			self.wait(pc, fp, sp, pos, True)
+
+	def wait(self, pc, fp, sp, pos, atinstr):
+		"""Stop with the VM about to run instruction pc until the page says
+		how to go on.  Called with self.cv held."""
+		self.paused = (pc, fp, sp, pos)
+		self.atinstr = atinstr
+		self.highwater = max(self.highwater, sp)
+		self.snap = None
+		self.status = 'paused'
+		self.version += 1
+		self.cv.notify_all()
+		deadline = time.time() + self.delay
+		while True:
+			if self.restart_req:
+				raise Restart()
+			if self.mode == 'stepi' and self.ipermits > 0:
+				self.ipermits = 0
+				# from a LINE pause the next instruction is the one shown,
+				# from an instruction pause it has just been shown: run one
+				self.icount = 0 if atinstr else 1
+				break
+			if self.mode == 'step' and self.permits > 0:
+				self.permits -= 1
+				if self.permits == 0:
+					self.mode = 'pause'
+				break
+			if self.mode == 'run':
+				break
+			if self.mode == 'play':
+				left = deadline - time.time()
+				if left <= 0:
 					break
-				if self.mode == 'run':
-					break
-				if self.mode == 'play':
-					left = deadline - time.time()
-					if left <= 0:
-						break
-					self.cv.wait(left)
-					continue
-				self.cv.wait(0.5)
-			self.status = 'running'
-			self.paused = None
-			self.version += 1
+				self.cv.wait(left)
+				continue
+			self.cv.wait(0.5)
+		self.status = 'running'
+		self.paused = None
+		self.version += 1
 
 	# commands from the page
 	def command(self, cmd, args):
@@ -171,6 +216,10 @@ class Session:
 			if cmd == 'step':
 				self.mode = 'step'
 				self.permits += 1
+			elif cmd == 'stepi':
+				self.mode = 'stepi'
+				self.ipermits = 1
+				self.permits = 0
 			elif cmd == 'play':
 				self.mode = 'play'
 			elif cmd == 'pause':
@@ -199,6 +248,7 @@ class Session:
 				self.restart_req = True
 				self.mode = 'pause'
 				self.permits = 0
+				self.ipermits = 0
 			self.version += 1
 			self.cv.notify_all()
 		if cmd == 'restart':
@@ -240,9 +290,39 @@ class Session:
 				if self.snap is None:
 					self.snap = snapshot(self.vm, *self.paused, highwater=self.highwater)
 				st['snap'] = self.snap
+				st['machine'] = self.machine()
 			elif self.status == 'finished' and self.snap is not None:
 				st['snap'] = self.snap
 			return st
+
+	def machine(self):
+		"""The VM's registers and operand stack while it is stopped."""
+		pc, fp, sp, pos = self.paused
+		vm = self.vm
+		ops = vm.opstack[-32:]
+		return {
+			'pc': pc, 'fp': fp, 'sp': sp,
+			'kind': vm.cur_routine.kind,
+			'routine': vm.cur_routine.name,
+			'atinstr': self.atinstr,
+			'stack': [value_text(v) for v in ops],
+			'depth': len(vm.opstack),
+		}
+
+	def code(self):
+		"""The bytecode, one row per instruction: [line, op, argument]."""
+		prog = self.prog
+		rows = []
+		for pc, (op, arg) in enumerate(zip(prog.ops, prog.args)):
+			if arg is None:
+				a = ''
+			elif op == C.CALL:
+				a = prog.routines[arg].name
+			else:
+				a = repr(arg)
+			rows.append([prog.lines[pc], C.OPS[op], a])
+		starts = {r.entry: {'kind': r.kind, 'routine': r.name} for r in prog.routines if r.entry is not None}
+		return {'rows': rows, 'starts': starts}
 
 	def memory(self, addr, size):
 		with self.cv:
@@ -278,6 +358,8 @@ def make_handler(session, token):
 			if u.path == '/api/source':
 				return self.send(200, json.dumps({'fname': session.prog.fname,
 					'lines': session.source.split('\n')}))
+			if u.path == '/api/code':
+				return self.send(200, json.dumps(session.code()))
 			if u.path == '/api/state':
 				return self.send(200, json.dumps(session.state(int(q.get('since', -1)))))
 			if u.path == '/api/mem':

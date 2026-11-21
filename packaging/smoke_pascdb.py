@@ -34,6 +34,24 @@ try:
 	print('pascdb stopped at lines', lines)
 	assert lines, 'no snapshot'
 	assert 'frames' in st['snap'] and 'heap' in st['snap']
+	# the machine view: registers, bytecode and one instruction at a time
+	code = get('code')
+	assert code['rows'] and code['starts'], 'no bytecode'
+	m = st['machine']
+	pcs = [m['pc']]
+	for i in range(5):
+		get('stepi')
+		time.sleep(0.3)
+		st = get('state')
+		m = st['machine']
+		assert m['atinstr'], 'stepi did not stop at an instruction'
+		pcs.append(m['pc'])
+	print('stepi went through pcs', pcs)
+	assert all(a != b for a, b in zip(pcs, pcs[1:])), 'stepi did not advance'
+	get('step')
+	time.sleep(0.3)
+	st = get('state')
+	assert not st['machine']['atinstr'], 'step after stepi did not stop at a line'
 	get('run')
 	time.sleep(1)
 	st = get('state')
